@@ -38,7 +38,7 @@ Bob (via migration-doctor skill):
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/<your-team>/codebase-doctor
+git clone https://github.com/FayazNoor/Codebase-Doctor
 cd codebase-doctor/mcp-server
 npm install && npm run build
 

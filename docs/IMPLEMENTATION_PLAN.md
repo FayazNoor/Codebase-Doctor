@@ -662,7 +662,7 @@ the hackathon.
 ### Setup for Judges / Reviewers
 
 ```bash
-git clone https://github.com/<team>/codebase-doctor
+git clone https://github.com/FayazNoor/Codebase-Doctor
 cd codebase-doctor/mcp-server
 npm install && npm run build
 

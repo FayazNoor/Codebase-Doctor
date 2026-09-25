@@ -4,7 +4,7 @@
 
 **[`gothinkster/react-redux-realworld-example-app`](https://github.com/gothinkster/react-redux-realworld-example-app)**
 
-Fork: `https://github.com/<your-team>/react-redux-realworld-example-app`
+Fork: `https://github.com/FayazNoor/react-redux-realworld-example-app`
 
 ## Why this repo
 

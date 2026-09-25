@@ -27,7 +27,7 @@
 
 **Type into Bob Agent mode chat:**
 ```
-Upgrade react from 17 to 18 in https://github.com/<your-fork>/react-redux-realworld-example-app
+Upgrade react from 17 to 18 in https://github.com/FayazNoor/react-redux-realworld-example-app
 Here are the React 18 migration docs: @react18-migration-guide.pdf
 ```
 
