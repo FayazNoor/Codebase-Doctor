@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+dist/
+
+# Session data (written at runtime)
+.codebase-doctor/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Test coverage
+coverage/

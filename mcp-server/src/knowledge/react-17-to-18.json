@@ -1,0 +1,65 @@
+[
+  {
+    "id": "react-bc-1",
+    "description": "ReactDOM.render() is removed — replace with createRoot().render()",
+    "affectedApis": ["ReactDOM", "render"],
+    "affectedFiles": [],
+    "automatable": true,
+    "codemods": ["@react-codemod/create-root"],
+    "severity": "high"
+  },
+  {
+    "id": "react-bc-2",
+    "description": "ReactDOM.hydrate() is removed — replace with hydrateRoot()",
+    "affectedApis": ["ReactDOM", "hydrate"],
+    "affectedFiles": [],
+    "automatable": true,
+    "codemods": ["@react-codemod/create-root"],
+    "severity": "high"
+  },
+  {
+    "id": "react-bc-3",
+    "description": "react-dom/test-utils act() is deprecated — use act() from 'react' directly",
+    "affectedApis": ["act"],
+    "affectedFiles": [],
+    "automatable": true,
+    "codemods": [],
+    "severity": "medium"
+  },
+  {
+    "id": "react-bc-4",
+    "description": "Automatic batching: setState calls in timeouts/promises are now batched — may affect tests relying on intermediate renders",
+    "affectedApis": ["useState", "setState"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "medium"
+  },
+  {
+    "id": "react-bc-5",
+    "description": "ReactDOM.render no longer supports callbacks as a third argument",
+    "affectedApis": ["ReactDOM", "render"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "medium"
+  },
+  {
+    "id": "react-bc-6",
+    "description": "Strict Mode now double-invokes effects in development to help detect side effects",
+    "affectedApis": ["StrictMode"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "low"
+  },
+  {
+    "id": "react-bc-7",
+    "description": "React.render and ReactDOM.unstable_batchedUpdates behaviour changed with concurrent rendering",
+    "affectedApis": ["unstable_batchedUpdates"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "low"
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "express-bc-1",
+    "description": "express.urlencoded() and express.json() no longer use body-parser implicitly — configure explicitly",
+    "affectedApis": ["urlencoded", "json"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "medium"
+  },
+  {
+    "id": "express-bc-2",
+    "description": "Router.param() callback signature changed — (req, res, next, value, name) instead of (req, res, next, id)",
+    "affectedApis": ["param"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "high"
+  },
+  {
+    "id": "express-bc-3",
+    "description": "express.static() etag option now defaults to true — verify caching behaviour in tests",
+    "affectedApis": ["static"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "low"
+  },
+  {
+    "id": "express-bc-4",
+    "description": "res.jsonp() no longer accepts arbitrary callback names by default — must configure jsonp callback name",
+    "affectedApis": ["jsonp"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "medium"
+  },
+  {
+    "id": "express-bc-5",
+    "description": "app.router is removed — mount routers using app.use(router) explicitly",
+    "affectedApis": ["router"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "high"
+  }
+]
