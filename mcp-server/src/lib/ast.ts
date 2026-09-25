@@ -36,7 +36,6 @@ export function findDependencyUsages(opts: FindUsagesOptions): DependencyUsage[]
 
   const project = new Project({
     tsConfigFilePath: tsConfigPath ?? undefined,
-    addFilesFromTsConfig: tsConfigPath !== null,
     skipAddingFilesFromTsConfig: tsConfigPath === null,
     skipFileDependencyResolution: true,
   });
@@ -62,7 +61,9 @@ export function findDependencyUsages(opts: FindUsagesOptions): DependencyUsage[]
       if (!isMatchingDep(moduleSpecifier, dependency)) continue;
 
       const pos = decl.getStartLineNumber();
-      const col = decl.getStart() - sourceFile.getLineStarts()[pos - 1];
+      const startPos = decl.getStart();
+      const lineStartPos = sourceFile.compilerNode.getLineStarts()[pos - 1] ?? 0;
+      const col = startPos - lineStartPos;
       const importSpecifier = extractImportSpecifier(decl);
       const usageContext = decl.getText().slice(0, 120);
 
@@ -89,7 +90,9 @@ export function findDependencyUsages(opts: FindUsagesOptions): DependencyUsage[]
       if (!isMatchingDep(specifier, dependency)) continue;
 
       const pos = call.getStartLineNumber();
-      const col = call.getStart() - sourceFile.getLineStarts()[pos - 1];
+      const startPos = call.getStart();
+      const lineStartPos = sourceFile.compilerNode.getLineStarts()[pos - 1] ?? 0;
+      const col = startPos - lineStartPos;
 
       usages.push({
         file: filePath,
@@ -158,7 +161,7 @@ function addFilesManually(
   walk(dir);
 }
 
-function extractImportSpecifier(decl: ReturnType<Project["getSourceFiles"]>[number]["getImportDeclarations"][number][number]): string {
+function extractImportSpecifier(decl: import("ts-morph").ImportDeclaration): string {
   const parts: string[] = [];
   const defaultImport = decl.getDefaultImport();
   if (defaultImport) parts.push(defaultImport.getText());

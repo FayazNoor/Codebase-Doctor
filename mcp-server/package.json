@@ -2,6 +2,7 @@
   "name": "@codebase-doctor/mcp-server",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Codebase Doctor MCP server — dependency upgrade analysis and migration tools",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

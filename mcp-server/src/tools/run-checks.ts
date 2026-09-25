@@ -106,8 +106,8 @@ function runCommand(
   } catch (err) {
     const output =
       err instanceof Error && "stdout" in err
-        ? String((err as { stdout: unknown }).stdout ?? "") +
-          String((err as { stderr: unknown }).stderr ?? "")
+        ? String((err as unknown as { stdout: unknown }).stdout ?? "") +
+          String((err as unknown as { stderr: unknown }).stderr ?? "")
         : String(err);
     return { passed: false, output: output.slice(0, 3000) };
   }
