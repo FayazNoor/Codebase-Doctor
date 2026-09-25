@@ -3,9 +3,9 @@
 This file provides guidance to agents when working with code in this repository.
 
 ## Project
-AI-Assisted Dependency Upgrade Doctor. MCP server at `mcp-server/` (TypeScript/Node.js ESM). Bob skill at `.bob/skills/migration-doctor/`.
+AI-Assisted Dependency Upgrade Doctor. MCP server at `backend/` (TypeScript/Node.js ESM). Bob skill at `.bob/skills/migration-doctor/`.
 
-## Commands (always run from `mcp-server/`)
+## Commands (always run from `backend/`)
 ```bash
 npm install          # install deps
 npm run build        # tsc → dist/

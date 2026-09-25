@@ -39,7 +39,7 @@ Bob (via migration-doctor skill):
 ```bash
 # 1. Clone and install
 git clone https://github.com/FayazNoor/Codebase-Doctor
-cd codebase-doctor/mcp-server
+cd Codebase-Doctor/backend
 npm install && npm run build
 
 # 2. Register the MCP server in Bob IDE
@@ -48,13 +48,15 @@ npm install && npm run build
 #      "mcpServers": {
 #        "codebase-doctor": {
 #          "command": "node",
-#          "args": ["<absolute-path>/mcp-server/dist/index.js"],
+#          "args": ["<absolute-path>/backend/dist/index.js"],
 #          "env": { "GITHUB_TOKEN": "<your-pat>" }
 #        }
 #      }
 #    }
 
-# 3. Set your GitHub token
+# 3. Copy .env.example and set your GitHub token
+cp .env.example .env
+# Edit .env and replace GITHUB_TOKEN value
 export GITHUB_TOKEN=ghp_...
 ```
 
@@ -74,22 +76,45 @@ The `migration-doctor` skill auto-activates and drives the full workflow.
 ## Repository Structure
 
 ```
-codebase-doctor/
-├── docs/
-│   └── IMPLEMENTATION_PLAN.md   ← full architecture and design
-├── mcp-server/                  ← MCP server (TypeScript/Node.js)
+Codebase-Doctor/
+├── README.md
+├── .gitignore
+├── .env.example
+│
+├── frontend/                    ← placeholder (Bob IDE is the UI for MVP)
+│   └── README.md
+│
+├── backend/                     ← MCP server (TypeScript/Node.js ESM)
 │   ├── src/
 │   │   ├── index.ts             ← server entry + tool registration
-│   │   ├── tools/               ← one file per MCP tool
+│   │   ├── tools/               ← one file per MCP tool (10 tools)
 │   │   ├── lib/                 ← git, AST, GitHub, session, risk helpers
-│   │   └── knowledge/           ← seeded migration knowledge base
+│   │   └── knowledge/           ← seeded migration knowledge base (JSON)
 │   └── test/
-│       ├── fixtures/            ← minimal React 17 app for integration tests
-│       └── unit/                ← unit tests (Vitest)
+│       ├── fixtures/            ← minimal React 17 app for tests
+│       └── unit/                ← Vitest unit tests (14 tests)
+│
 ├── .bob/
-│   ├── skills/migration-doctor/ ← Bob skill (SKILL.md + supporting files)
+│   ├── skills/migration-doctor/ ← custom Bob skill (SKILL.md + supporting files)
 │   └── rules/AGENTS.md          ← Bob rules for this repo
-└── demo/                        ← demo script and target repo notes
+│
+├── docs/
+│   ├── PROBLEM_SOLUTION.md
+│   ├── BOB_USAGE.md
+│   ├── ARCHITECTURE.md
+│   ├── DEMO_SCRIPT.md
+│   └── bob-evidence/
+│       ├── fayaz/               ← Bob session screenshots + usage log
+│       │   ├── BOB_USAGE_LOG.md
+│       │   └── *.png
+│       └── teammate/            ← teammate Bob session screenshots + usage log
+│           ├── BOB_USAGE_LOG.md
+│           └── *.png
+│
+└── submission/
+    ├── problem-solution.md
+    ├── bob-statement.md
+    └── video-notes.md
 ```
 
 ---
@@ -113,17 +138,11 @@ codebase-doctor/
 ## Development
 
 ```bash
-# Build
-npm run build
-
-# Test (unit)
-npm test
-
-# Test (integration — requires git + network)
-npm run test:integration --workspace=mcp-server
-
-# Lint
-npm run lint
+# from repo root — or cd backend/ first
+npm run build      # tsc → backend/dist/
+npm test           # vitest unit tests (14 tests)
+npm run typecheck  # type-check without emitting
+npm run lint       # eslint backend/src/
 ```
 
 ---

@@ -173,7 +173,7 @@ codebase-doctor/
 ├── docs/
 │   └── IMPLEMENTATION_PLAN.md          ← this file
 │
-├── mcp-server/                         ← the MCP server package
+├── backend/                            ← the MCP server package
 │   ├── src/
 │   │   ├── index.ts                    ← MCP server entry point & tool registration
 │   │   ├── tools/
@@ -378,7 +378,7 @@ Local **stdio** — started by Bob IDE via the `mcp` configuration block in
   "mcpServers": {
     "codebase-doctor": {
       "command": "node",
-      "args": ["./mcp-server/dist/index.js"],
+      "args": ["./backend/dist/index.js"],
       "env": {
         "GITHUB_TOKEN": "${GITHUB_TOKEN}"
       }
@@ -630,7 +630,7 @@ hackathon requirement.
 
 ### MCP Server Unit Tests (Vitest)
 
-Each tool in `mcp-server/src/tools/` has a corresponding unit test that mocks
+Each tool in `backend/src/tools/` has a corresponding unit test that mocks
 the `lib/` layer (git, GitHub API, shell). Focus areas:
 
 - `analyze_dependency_usage` — given a fixture repo, returns correct AST hits
@@ -663,11 +663,11 @@ the hackathon.
 
 ```bash
 git clone https://github.com/FayazNoor/Codebase-Doctor
-cd codebase-doctor/mcp-server
+cd codebase-doctor/backend
 npm install && npm run build
 
 # Add to Bob IDE MCP config (one command):
-bob mcp add codebase-doctor --command "node ./mcp-server/dist/index.js"
+bob mcp add codebase-doctor --command "node ./backend/dist/index.js"
 
 # Set GitHub token:
 export GITHUB_TOKEN=<your-pat>
@@ -764,7 +764,7 @@ Section 9 works end-to-end on the real demo target repository.
 
 ### Developer A — MCP Server & Infrastructure
 
-**Owns:** Everything in `mcp-server/`
+**Owns:** Everything in `backend/`
 
 | Task | Phase |
 |---|---|

@@ -5,9 +5,9 @@ This file provides guidance to agents when working with code in this repository.
 ## Project
 
 **Codebase Doctor** — AI-Assisted Dependency Upgrade Doctor powered by IBM Bob 2.0.
-MCP server in `mcp-server/` (TypeScript/Node.js). Skill in `.bob/skills/migration-doctor/`.
+MCP server in `backend/` (TypeScript/Node.js). Skill in `.bob/skills/migration-doctor/`.
 
-## Commands (run from `mcp-server/`)
+## Commands (run from `backend/`)
 
 ```bash
 npm install          # install dependencies
