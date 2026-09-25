@@ -60,3 +60,19 @@ Update this file **immediately after each session** with the relevant screenshot
 ---
 
 <!-- Add new sessions below this line -->
+
+### 2025-07-14 — Consistency Audit: mcp-server → backend rename
+- **Mode:** Agent
+- **Bob features used:** Agent mode, grep, apply_diff (multi-block), execute_command, update_todo_list
+- **What Bob did:**
+  - Inspected full repository structure to confirm `backend/` as canonical MCP directory
+  - Grepped all `.md` and `.json` files for stale `mcp-server/` filesystem path references
+  - Fixed `AGENTS.md` (root) — 2 path references updated
+  - Fixed `.bob/rules/AGENTS.md` — 2 path references updated
+  - Fixed `package.json` (root) — workspace entry + 3 `--workspace=` script flags updated
+  - Fixed `docs/IMPLEMENTATION_PLAN.md` — 5 filesystem path references updated
+  - Regenerated `package-lock.json` to remove stale workspace key
+  - Verified zero remaining `mcp-server/` path references after edits
+  - Ran `npm run build` (clean) and `npm test` (14/14 passed)
+  - Committed all changes in one atomic commit (`5d17408`)
+- **Output / result:** Repository fully consistent; canonical directory is `backend/`; build and tests green
