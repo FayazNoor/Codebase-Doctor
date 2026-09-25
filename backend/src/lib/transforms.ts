@@ -98,6 +98,9 @@ export function transformReactDOMRender(source: string): string {
   // Guard: already migrated
   if (source.includes("createRoot")) return source;
 
+  // Guard: no ReactDOM.render calls in this file — nothing to do
+  if (!/ReactDOM\.render\(/.test(source)) return source;
+
   let result = source;
 
   // 1. Replace the default import for react-dom with the named createRoot import.

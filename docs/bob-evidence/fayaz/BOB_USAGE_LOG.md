@@ -73,4 +73,22 @@ Update this file **immediately after each session** with the relevant screenshot
 
 ---
 
+### 2026-09-26 — Integration Testing & Migration Verification (Session F)
+- **Mode:** Agent
+- **Screenshot:** 04-integration-tests.png
+- **Bob features used:** Agent mode, read_file, apply_diff, write_file, insert_content, execute_command, update_todo_list
+- **What Bob did:**
+  - Inspected all 8 pipeline tool implementations, fixture files, knowledge base, and existing tests before writing any code
+  - Extended fixture with `hydrate.jsx` (react-bc-2) and `BatchedUpdatesExample.jsx` (react-bc-7) patterns
+  - Found and fixed two production bugs in `transforms.ts` caught during test development:
+    - `transformReactDOMRender` clobbered the `react-dom` import on hydrate-only files (no `.render` call)
+    - `transformReactDOMHydrate` idempotency guard triggered on comment text containing `hydrateRoot`
+  - Created `backend/test/integration/e2e-react-migration.test.ts` (27 tests) covering all 8 pipeline steps end-to-end against a disposable `os.tmpdir()` git repo; no GitHub, no network
+  - Test asserts actual file content (not just exit codes), verifies manual steps stay unapplied, covers failure behavior and `stepId` error handling, cleans up in `afterAll`
+  - Updated `vitest.config.ts` to include integration tests with 60-second timeout
+- **Output / result:** 61/61 tests passing (+27 integration, 0 regressions); clean `tsc` build; 2 production bugs found and fixed
+
+---
+
 <!-- Add new sessions below this line -->
+
