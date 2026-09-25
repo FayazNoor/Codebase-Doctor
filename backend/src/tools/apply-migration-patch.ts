@@ -15,6 +15,7 @@ import {
   readAnalysis,
 } from "../lib/session.js";
 import { stageAndCommit, diffStat } from "../lib/git.js";
+import { REACT_TRANSFORMS } from "../lib/transforms.js";
 import type { MigrationStep } from "../types.js";
 
 interface Input {
@@ -119,26 +120,7 @@ function applyConfigStep(
 }
 
 function applyCodeStep(step: MigrationStep, localPath: string): void {
-  // React 17→18 specific transforms (the MVP breaking changes)
-  const transforms: Record<string, (content: string) => string> = {
-    // ReactDOM.render → createRoot
-    "react-bc-1": (c) =>
-      c.replace(
-        /import ReactDOM from ['"]react-dom['"]/g,
-        "import { createRoot } from 'react-dom/client'"
-      ).replace(
-        /ReactDOM\.render\((<[^,]+>),\s*([^)]+)\)/g,
-        "createRoot($2).render($1)"
-      ),
-    // ReactDOM.hydrate → hydrateRoot
-    "react-bc-2": (c) =>
-      c.replace(
-        /ReactDOM\.hydrate\((<[^,]+>),\s*([^)]+)\)/g,
-        "import { hydrateRoot } from 'react-dom/client';\nhydrateRoot($2, $1)"
-      ),
-  };
-
-  const transform = step.breakingChangeId ? transforms[step.breakingChangeId] : null;
+  const transform = step.breakingChangeId ? REACT_TRANSFORMS[step.breakingChangeId] : null;
   if (!transform) return;
 
   for (const relFile of step.files) {

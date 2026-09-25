@@ -33,7 +33,8 @@
     "affectedFiles": [],
     "automatable": false,
     "codemods": [],
-    "severity": "medium"
+    "severity": "medium",
+    "manualAction": "Review any tests that assert on intermediate render states inside setTimeout, Promise.then, or native event handlers. Wrap those assertions in `act()` or use `flushSync` from 'react-dom' to opt out of automatic batching where needed."
   },
   {
     "id": "react-bc-5",
@@ -42,24 +43,27 @@
     "affectedFiles": [],
     "automatable": false,
     "codemods": [],
-    "severity": "medium"
+    "severity": "medium",
+    "manualAction": "Search for ReactDOM.render calls with a third callback argument. Move the callback logic into the rendered component (e.g. a useEffect) or use the Promise-based API available through createRoot."
   },
   {
     "id": "react-bc-6",
     "description": "Strict Mode now double-invokes effects in development to help detect side effects",
-    "affectedApis": ["StrictMode"],
+    "affectedApis": [],
     "affectedFiles": [],
     "automatable": false,
     "codemods": [],
-    "severity": "low"
+    "severity": "low",
+    "manualAction": "Audit useEffect, useLayoutEffect, and class lifecycle methods for non-idempotent side effects (network requests, analytics calls, subscriptions). Ensure cleanup functions are implemented so double-invocation does not cause observable problems in development."
   },
   {
     "id": "react-bc-7",
-    "description": "React.render and ReactDOM.unstable_batchedUpdates behaviour changed with concurrent rendering",
+    "description": "ReactDOM.unstable_batchedUpdates behaviour changed with concurrent rendering",
     "affectedApis": ["unstable_batchedUpdates"],
     "affectedFiles": [],
     "automatable": false,
     "codemods": [],
-    "severity": "low"
+    "severity": "low",
+    "manualAction": "With React 18's automatic batching, explicit calls to unstable_batchedUpdates are no longer needed in most cases. Remove them and verify behaviour. If you need to force synchronous rendering, use flushSync from 'react-dom' instead."
   }
 ]

@@ -84,6 +84,8 @@ export interface BreakingChange {
   automatable: boolean;
   codemods: string[];
   severity: "high" | "medium" | "low";
+  /** Guidance shown in the migration plan for manual-only breaking changes. */
+  manualAction?: string;
 }
 
 export interface MigrationRequirements {

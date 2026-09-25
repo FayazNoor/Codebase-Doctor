@@ -130,6 +130,9 @@ function buildStepDescription(bc: BreakingChange): string {
   if (bc.codemods.length > 0) {
     desc += `\n\nAvailable codemods: ${bc.codemods.join(", ")}`;
   }
+  if (!bc.automatable && bc.manualAction) {
+    desc += `\n\n⚠️ Manual action required: ${bc.manualAction}`;
+  }
   return desc;
 }
 
