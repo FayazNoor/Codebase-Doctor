@@ -5,9 +5,92 @@ Each entry captures what Bob was asked to do, what changed, and the outcome.
 
 ---
 
+## Session A+B — Project Scaffold, TypeScript Fixes & AGENTS.md
+
+**Date:** 2026-09-26  
+**Mode:** Agent
+
+### Task
+
+Scaffold the full Codebase Doctor repository from scratch: implement all 10 MCP tools, 5 lib helpers,
+knowledge base JSON, unit tests, Bob skill, and supporting documentation. Then fix TypeScript errors,
+align test score bounds with the scoring algorithm, add AGENTS.md files, and update the repo URL.
+
+### What Bob did
+
+1. **Scaffolded** `backend/`, `.bob/`, `docs/`, `submission/`, `frontend/` placeholder directories
+2. **Implemented** all 10 MCP tools under `backend/src/tools/`, 5 lib helpers under `backend/src/lib/`
+3. **Seeded** knowledge base JSON for React 17→18 and Express 4→5 in `backend/src/knowledge/`
+4. **Wrote** 14 Vitest unit tests; fixed TypeScript errors and aligned risk score bounds with algorithm
+5. **Added** `AGENTS.md` (root, `.bob/rules/`, `.bob/rules-agent/`) with strict MCP tool call order
+6. **Updated** repo URL to `github.com/FayazNoor/Codebase-Doctor`
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `backend/src/` (all files) | Full MCP server implementation |
+| `backend/test/` | 14 unit tests (risk + AST) |
+| `.bob/skills/migration-doctor/` | Custom skill SKILL.md + supporting files |
+| `AGENTS.md`, `.bob/rules/AGENTS.md`, `.bob/rules-agent/AGENTS.md` | Agent rules |
+| `docs/IMPLEMENTATION_PLAN.md` | Full design plan |
+
+### Outcome
+
+| Metric | Result |
+|---|---|
+| TypeScript compilation | ✅ Clean |
+| Build (`tsc`) | ✅ Clean |
+| Tests | **14 / 14 passing** |
+
+---
+
+## Session C — Consistency Audit: mcp-server → backend rename
+
+**Date:** 2026-09-26  
+**Mode:** Agent
+
+### Task
+
+Audit the repository for stale path references after the `mcp-server/` → `backend/` rename.
+Fix all documentation and config without moving any working code.
+
+### What Bob did
+
+1. **Inspected** full repository structure; confirmed `backend/` as canonical MCP directory
+2. **Grepped** all `.md` and `.json` files for stale `mcp-server/` filesystem path references
+3. **Fixed** `AGENTS.md` (root) — 2 path references
+4. **Fixed** `.bob/rules/AGENTS.md` — 2 path references
+5. **Fixed** `package.json` (root) — workspace entry + 3 `--workspace=` script flags
+6. **Fixed** `docs/IMPLEMENTATION_PLAN.md` — 5 filesystem path references
+7. **Regenerated** `package-lock.json` to clear stale workspace key
+8. **Verified** zero remaining `mcp-server/` path references
+9. **Ran** `npm run build` (clean) and `npm test` (14/14 passed)
+10. **Committed** all changes (`5d17408`)
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `AGENTS.md` | 2 stale path references → `backend/` |
+| `.bob/rules/AGENTS.md` | 2 stale path references → `backend/` |
+| `package.json` | Workspace + 3 script flags → `backend` |
+| `docs/IMPLEMENTATION_PLAN.md` | 5 filesystem path references → `backend/` |
+| `package-lock.json` | Regenerated; stale workspace key removed |
+
+### Outcome
+
+| Metric | Result |
+|---|---|
+| Stale `mcp-server/` path references | ✅ Zero remaining |
+| Build (`tsc`) | ✅ Clean |
+| Tests | **14 / 14 passing** |
+
+---
+
 ## Session D — React 17→18 Migration Engine Coverage
 
-**Date:** 2025-01
+**Date:** 2026-09-26  
 **Mode:** Agent
 
 ### Task
