@@ -10,13 +10,13 @@ workflow step where it appears. This is the evidence brief for the hackathon sub
 | Bob 2.0 Feature | Where used in Codebase Doctor | Why it matters |
 |---|---|---|
 | **Agent mode** | Kickoff, implementation, verify loop, PR creation | Drives all code changes and tool calls end-to-end |
-| **Plan mode** | Migration plan generation + approval gate | Produces a structured, user-reviewable plan before any code is touched |
-| **Parallel subagents** | Analysis phase — repo AST + docs ingested concurrently | Cuts analysis time in half; keeps main context lean |
+| **Plan mode** | Migration plan generation + approval gate | Produces a structured, user-reviewable plan; the backend refuses code changes until `approve_migration_plan` records the user's "approved" |
+| **Parallel subagents** | Analysis phase — attached migration docs are extracted while the repo is analysed; up to 3 high-risk file reads in parallel | Parallelizes independent analysis tasks and reduces elapsed time when both tasks are substantial (not benchmarked); keeps main context lean |
 | **Background subagents** | Per-file-cluster reads during implementation | Prevents context poisoning from large file reads |
 | **Document understanding** | User attaches migration guide PDF | Bob reads and understands PDF migration docs natively — no manual extraction |
 | **Custom skill** | `migration-doctor` auto-activates on upgrade intent | Single activation trigger drives the entire 7-step workflow |
-| **MCP server** | All backend logic (10 tools) | Exposes reusable repo-analysis tools; works as a standalone MCP for other agents |
-| **HTML artifact** | Before/after migration report | Shareable one-pager with productivity metrics |
+| **MCP server** | All backend logic (11 tools) | Exposes reusable repo-analysis tools; works as a standalone MCP for other agents |
+| **HTML artifact** | Before/after migration report | Shareable one-pager: measured results, labelled estimates, and what is not measured |
 | **Todo list** | Live progress during implementation | User can see each migration step tick off in real time |
 | **Mode switching** | Agent → Plan → Agent | Bob switches modes mid-workflow as the task transitions from analysis to planning to implementation |
 | **fork_context subagent** | Final code review subagent | Subagent receives full session history to do an informed diff review |
@@ -29,7 +29,7 @@ workflow step where it appears. This is the evidence brief for the hackathon sub
 
 ```
 User (Agent mode):
-  "Upgrade react from 17 to 18 in https://github.com/FayazNoor/react-redux-realworld-example-app
+  "Upgrade react from 17 to 18.3.1 in <demo repo URL — see docs/target-repo.md (not ready yet)>
    Here are the React 18 migration docs: [attached PDF]"
 ```
 
@@ -41,14 +41,17 @@ User (Agent mode):
 
 ### Phase 1 — Analysis (Parallel subagents)
 
-Two `explore` subagents spawn simultaneously:
+`load_migration_requirements` needs the `sessionId` returned by
+`analyze_dependency_usage`, so those two calls are sequential. What runs in
+parallel is the independent work:
 
 ```
-Subagent A: Call analyze_dependency_usage → return top 10 highest-risk files
-Subagent B: Call load_migration_requirements → return applicable breaking changes
+Subagent A: call analyze_dependency_usage → return sessionId + top high-risk files
+Subagent B: extract the text of the attached migration PDF (document understanding)
+then:       call load_migration_requirements(sessionId, docsText)
 ```
 
-- **Parallel subagents**: both run concurrently; main context only sees compact summaries
+- **Parallel subagents**: parallelizes independent analysis tasks and reduces elapsed time when both tasks are substantial (no benchmark has been run)
 - **Context efficiency**: file contents never enter main context — only summaries do
 
 ---
@@ -59,7 +62,7 @@ Bob calls `calculate_migration_blast_radius`, then **switches to Plan mode**:
 
 - **Plan mode**: generates a structured `MigrationPlan` with ordered steps
 - **Skill-driven validation**: skill reads `migration-checklist.md` to verify plan completeness
-- **Approval gate**: plan is presented to user; implementation does not start until "approved"
+- **Approval gate**: plan is presented to user; after the user types "approved", Bob calls `approve_migration_plan` — `checkout_branch`, `apply_migration_patch` and `create_pull_request` refuse to run before that
 - **Mode switching**: `switch_mode` tool transitions Agent → Plan
 
 ---
@@ -69,7 +72,7 @@ Bob calls `calculate_migration_blast_radius`, then **switches to Plan mode**:
 - **Mode switching**: Plan → Agent after user approves
 - **Todo list**: `migration-checklist.md` becomes a live todo list; items tick off as steps apply
 - **Targeted subagents**: high-risk files (score ≥ 70) get a dedicated `explore` subagent before patching; up to 3 in parallel
-- **MCP tools**: `checkout_branch` + `apply_migration_patch` × N
+- **MCP tools**: `checkout_branch` + `apply_migration_patch` × N (manual steps are reported as `manual_required` until Bob records the completed change with a note)
 
 ---
 
@@ -91,7 +94,7 @@ loop (max 3 iterations):
 
 - **fork_context subagent**: code review subagent reviews the full diff
 - **HTML artifact**: `generate_report` → `create_html_artifact` renders the migration report
-- **MCP tool**: `create_pull_request` opens the PR with the full report as body
+- **MCP tool**: `create_pull_request` opens the PR with the full report as body — only after the latest `verify_migration` passed on the current commit
 
 ---
 
@@ -118,7 +121,7 @@ loop (max 3 iterations):
 
 **Location:** `backend/` (local stdio transport)
 
-**10 tools registered:**
+**11 tools registered:**
 
 | Tool | Phase |
 |---|---|
@@ -126,7 +129,8 @@ loop (max 3 iterations):
 | `load_migration_requirements` | 0/1 — docs parsing + breaking change mapping |
 | `calculate_migration_blast_radius` | 2 — risk scoring |
 | `generate_migration_plan` | 2 — plan generation |
-| `verify_migration` | 4 — lint/test/build + diagnosis |
+| `approve_migration_plan` | 2 — records the user's approval (gate) |
+| `verify_migration` | 4 — installed versions + lint/test/build + diagnosis |
 | `checkout_branch` | 3 — git branch |
 | `apply_migration_patch` | 3 — code changes + commit |
 | `run_checks` | internal — raw check runner |

@@ -30,37 +30,42 @@ Codebase Doctor then autonomously:
 
 | Step | What happens |
 |---|---|
-| 1 | Clones the repo and performs AST-level analysis to find **every usage** of the dependency |
-| 2 | Reads and understands migration documentation (user-supplied PDF or built-in knowledge base) |
-| 3 | Identifies only the breaking changes **applicable to this specific repo** |
+| 1 | Clones the repo and performs AST-level analysis of the dependency's **package family** (for React: `react`, `react-dom`, `react-dom/client`, `react-dom/test-utils`) — import sites **and** concrete API calls such as `ReactDOM.render(...)` |
+| 2 | Uses its built-in migration rules, validated and augmented by user-supplied documentation (e.g. a PDF) |
+| 3 | Identifies only the breaking changes with **evidence in this specific repo** |
 | 4 | Calculates blast radius — files ranked by migration risk score |
-| 5 | Produces a prioritised migration plan and presents it for **user approval** |
-| 6 | Implements changes on a dedicated branch, file by file |
-| 7 | Generates or updates tests |
-| 8 | Runs lint / test / build, diagnoses failures, and iterates (max 3 loops) |
-| 9 | Runs a final automated code review |
-| 10 | Opens a pull request with a complete before/after migration report |
+| 5 | Produces a prioritised migration plan; **nothing is changed until the user approves** (enforced by the backend) |
+| 6 | Upgrades the package family together (e.g. `react` + `react-dom`), runs the real install and updates the lockfile |
+| 7 | Applies automated transforms where they are safe; tracks manual items (including test updates) until a human/Bob completes them |
+| 8 | Verifies installed versions and runs lint / test / build, diagnoses failures, and iterates (max 3 loops) |
+| 9 | Runs a final automated code review (Bob subagent) |
+| 10 | Opens a pull request — only after verification passes — with a report that separates automatic fixes, manual fixes, and open items |
 
 ---
 
 ## Measurable Productivity Impact
 
-The migration report generated at the end of each session includes:
+The migration report generated at the end of each session separates:
 
-- **Wall-clock time** from session start to PR opened
-- **Manual estimate**: affected files × 30 min/file
-- **Time saved**: manual estimate − actual time
-- **Accuracy**: steps applied correctly / total steps
+- **Measured:** lint / test / build results, installed versions, files changed on the branch,
+  steps fixed automatically vs. manually vs. still open, elapsed session time
+- **Estimated (labelled as such):** manual effort = affected files × 30 min (a heuristic, not a
+  benchmark) and estimated time saved = that estimate − measured elapsed time
+- **Not measured:** Bobcoin consumption and accuracy — the server cannot observe them, so the
+  report says "not measured" instead of inventing numbers
 
-### Demo numbers (React 17 → 18, `react-redux-realworld-example-app`)
+### Demo numbers — targets only, not results
 
-| Metric | Value |
+No real end-to-end demo run has been completed yet, so there are no measured demo numbers.
+The demo target repository also still needs preparation (see `docs/target-repo.md`).
+After the real run, replace this section with the values from its migration report.
+
+| Metric | Status |
 |---|---|
-| Files affected | ~37 |
-| Manual estimate | ~18 hours |
-| Codebase Doctor time | ~7 minutes |
-| Time saved | ~17 hours 53 minutes |
-
+| Files affected | to be measured |
+| Codebase Doctor wall-clock time | to be measured (target: ≤ 7 minutes for the live demo) |
+| Manual effort | estimate only (affected files × 30 min) |
+| Time saved | estimate only |
 ---
 
 ## Why IBM Bob 2.0?

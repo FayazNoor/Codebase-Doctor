@@ -3,7 +3,12 @@
 > **Project:** Codebase Doctor — AI-Assisted Dependency Upgrade Doctor  
 > **Hackathon:** IBM Bob 2.0 @ lablab.ai  
 > **Team:** 2 developers  
-> **Status:** Plan — awaiting approval before any code is written
+> **Status:** Original approved implementation plan (historical — preserved as written before implementation)
+> **Current status:** see [`README.md`](../README.md#current-status) and the Bob usage logs
+> ([`docs/BOB_USAGE_LOG.md`](BOB_USAGE_LOG.md), [`docs/bob-evidence/`](bob-evidence/)).
+> Notable later changes: 11 MCP tools (added `approve_migration_plan`), knowledge base is JSON
+> (`backend/src/knowledge/*.json`), MCP config lives in `.bob/mcp.json`, and the demo target
+> repository still needs preparation (see [`docs/target-repo.md`](target-repo.md)).
 
 ---
 

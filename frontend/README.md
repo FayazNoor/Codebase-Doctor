@@ -1,7 +1,8 @@
 # Frontend
 
-> **MVP status:** The Bob IDE is the user-facing interface for Codebase Doctor.  
-> This directory is a placeholder for a future web UI.
+> **Status: out of scope for the hackathon — post-hackathon future work.**
+> The Bob IDE is the user-facing interface for Codebase Doctor. Nothing in this directory is
+> required for the MVP or the demo; it only records the planned web UI.
 
 ---
 
@@ -22,7 +23,7 @@ A React + Vite web app that wraps the same MCP tools behind a browser-based inte
 ## Integration Points (when built)
 
 - **Backend:** `POST /api/session/start` → wraps `analyze_dependency_usage` + `load_migration_requirements`
-- **Backend:** `POST /api/session/:id/approve` → triggers implementation phase
+- **Backend:** `POST /api/session/:id/approve` → wraps `approve_migration_plan`
 - **Backend:** `GET /api/session/:id/progress` → SSE stream of `apply_migration_patch` events
 - **Backend:** `GET /api/session/:id/report` → final report JSON
 
@@ -33,7 +34,9 @@ A React + Vite web app that wraps the same MCP tools behind a browser-based inte
 Use Bob IDE directly. Open Agent mode and run:
 
 ```
-Upgrade react from 17 to 18 in https://github.com/FayazNoor/react-redux-realworld-example-app
+Upgrade react from 17 to 18.3.1 in <prepared demo repo URL>
 ```
+
+The demo repository still needs preparation — see [`docs/target-repo.md`](../docs/target-repo.md).
 
 See [`docs/DEMO_SCRIPT.md`](../docs/DEMO_SCRIPT.md) for the full demo walkthrough.

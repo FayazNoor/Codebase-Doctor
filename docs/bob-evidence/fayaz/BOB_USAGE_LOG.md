@@ -2,6 +2,9 @@
 
 A chronological record of every IBM Bob 2.0 session used to build Codebase Doctor.  
 Update this file **immediately after each session** with the relevant screenshot filename.
+Only reference screenshots that exist in this folder.
+
+Dates are taken from the git commit timestamps of each session's work (author timezone UTC+05:00).
 
 ---
 
@@ -24,7 +27,7 @@ Update this file **immediately after each session** with the relevant screenshot
 
 ### 2026-09-26 — Project Scaffold, TypeScript Fixes & AGENTS.md (Sessions A & B)
 - **Mode:** Agent
-- **Screenshot:** 01-initial-scaffold.png
+- **Screenshot:** `01-core-architecture-and-mcp-scaffold.png`
 - **Bob features used:** Agent mode, write_file, execute_command, apply_diff
 - **What Bob did:**
   - Scaffolded full repository: `backend/`, `.bob/`, `docs/`, `submission/`, `frontend/` placeholder
@@ -38,7 +41,7 @@ Update this file **immediately after each session** with the relevant screenshot
 
 ### 2026-09-26 — Consistency Audit: mcp-server → backend rename (Session C)
 - **Mode:** Agent
-- **Screenshot:** 02-consistency-audit.png
+- **Screenshot:** `02-repository-consistency-audit.png`
 - **Bob features used:** Agent mode, grep, apply_diff (multi-block), execute_command, update_todo_list
 - **What Bob did:**
   - Inspected full repository structure to confirm `backend/` as canonical MCP directory
@@ -52,12 +55,14 @@ Update this file **immediately after each session** with the relevant screenshot
   - Ran `npm run build` (clean) and `npm test` (14/14 passed)
   - Committed all changes in one atomic commit (`5d17408`)
 - **Output / result:** Repository fully consistent; canonical directory `backend/`; build and tests green
+- **Note:** the follow-up commit `e2f39a1` says "(2025-07-14)" in its message; that date was wrong and
+  was corrected to 2026-09-26 in `be3f7f5`.
 
 ---
 
 ### 2026-09-26 — React 18 Migration Engine Coverage (Session D)
 - **Mode:** Agent
-- **Screenshot:** 03-react18-transforms.png
+- **Screenshot:** `03-react18-migration-engine-complete.png`
 - **Bob features used:** Agent mode, apply_diff (multi-block), write_file, execute_command, update_todo_list
 - **What Bob did:**
   - Inspected knowledge base, tools, and fixture to produce a full coverage matrix for bc-1 through bc-7
@@ -75,7 +80,7 @@ Update this file **immediately after each session** with the relevant screenshot
 
 ### 2026-09-26 — Integration Testing & Migration Verification (Session F)
 - **Mode:** Agent
-- **Screenshot:** 04-integration-tests.png
+- **Screenshot:** `04-end-to-end-integration-test.png`
 - **Bob features used:** Agent mode, read_file, apply_diff, write_file, insert_content, execute_command, update_todo_list
 - **What Bob did:**
   - Inspected all 8 pipeline tool implementations, fixture files, knowledge base, and existing tests before writing any code

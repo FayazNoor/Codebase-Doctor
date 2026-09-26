@@ -21,14 +21,16 @@ is N/A).
 - [ ] Test command confirmed (`npm test` / `yarn test` / `vitest` / etc.)
 - [ ] Build command confirmed
 - [ ] Lint command confirmed
+- [ ] Plan approved by the user and recorded with `approve_migration_plan`
 - [ ] Migration branch created (`codebase-doctor/{dep}-{version}-upgrade`)
 
 ## Category 2 — Dependency Version Update
 
 - [ ] Update target dependency version in `package.json`
-- [ ] Update peer dependencies required by the new version
-- [ ] Remove deprecated companion packages (e.g., `react-dom` sync with `react`)
-- [ ] Install updated packages (`npm install` / `yarn` / `pnpm install`)
+- [ ] Keep companion packages in lock-step (e.g. `react-dom`, `react-test-renderer` at the same version as `react`; `@types/react*` at the same major) — only packages already declared
+- [ ] Install updated packages (`npm install` / `yarn install` / `pnpm install`) and commit the updated lockfile
+- [ ] Confirm the installed versions in `node_modules` match the target (checked by `apply_migration_patch` and `verify_migration`)
+- [ ] If install fails on a peer-dependency conflict, upgrade the conflicting library deliberately (it is not changed automatically)
 
 ## Category 3 — Breaking API Changes
 
@@ -72,6 +74,7 @@ is N/A).
 ## Category 9 — Pull Request
 
 - [ ] Before/after migration report generated
+- [ ] Latest `verify_migration` passed on the current commit (required by `create_pull_request`)
 - [ ] PR opened on migration branch targeting default branch
-- [ ] PR body includes blast radius stats, breaking changes checklist, and test results
+- [ ] PR body includes blast radius stats, each breaking change with its real status, and test results
 - [ ] PR labelled `codebase-doctor` and `dependencies`

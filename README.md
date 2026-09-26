@@ -1,9 +1,14 @@
 # Codebase Doctor 🩺
 
-> AI-Assisted Dependency Upgrade Doctor powered by **IBM Bob 2.0**  
+> AI-Assisted Dependency Upgrade Doctor powered by **IBM Bob 2.0**
 > Built for the [lablab.ai IBM Bob 2.0 Hackathon](https://lablab.ai)
 
-Codebase Doctor takes a GitHub repository, a dependency, and a target version — then autonomously analyses every usage, identifies applicable breaking changes, calculates blast radius, produces an approvable migration plan, implements the changes, verifies with lint/test/build, and opens a pull request.
+Codebase Doctor takes a GitHub repository, a dependency, and a target version — then analyses how the
+dependency's package family is used (import sites **and** concrete API calls), identifies the breaking
+changes that apply to *this* repo, calculates blast radius, produces a migration plan that must be
+approved, implements the automatable changes, verifies with lint/test/build against the newly installed
+versions, and opens a pull request whose report distinguishes what was fixed automatically, what was done
+manually, and what still needs a human.
 
 ---
 
@@ -13,16 +18,22 @@ Codebase Doctor takes a GitHub repository, a dependency, and a target version �
 User provides:  repo URL + dependency + target version + (optional) migration docs PDF
 
 Bob (via migration-doctor skill):
-  1. Analyse dependency usages  →  analyze_dependency_usage MCP tool
-  2. Load migration requirements →  load_migration_requirements MCP tool
-  3. Calculate blast radius      →  calculate_migration_blast_radius MCP tool
-  4. Generate migration plan     →  generate_migration_plan MCP tool  [user approves]
-  5. Implement changes           →  apply_migration_patch × N
-  6. Verify                      →  verify_migration MCP tool  [iterative loop]
-  7. PR + report                 →  create_pull_request + generate_report
+  1. Analyse dependency usages   →  analyze_dependency_usage
+  2. Load migration requirements →  load_migration_requirements   (built-in rules, validated/augmented by docs)
+  3. Calculate blast radius      →  calculate_migration_blast_radius
+  4. Generate migration plan     →  generate_migration_plan        [Plan mode]
+     User types "approved"       →  approve_migration_plan         (backend-enforced gate)
+  5. Implement changes           →  checkout_branch + apply_migration_patch × N
+  6. Verify                      →  verify_migration               [iterative loop, max 3]
+  7. Report + PR                 →  generate_report + create_pull_request (requires passing verification)
 ```
 
-**Demo migration:** React 17 → 18 on [`gothinkster/react-redux-realworld-example-app`](https://github.com/gothinkster/react-redux-realworld-example-app)
+**Golden-path migration:** React 17 → 18 (`react` + `react-dom`, including `react-dom/client` and
+`react-dom/test-utils`). Express 4 → 5 rules exist but are manual-only.
+
+**Demo target:** [`gothinkster/react-redux-realworld-example-app`](https://github.com/gothinkster/react-redux-realworld-example-app)
+— ⚠️ **not demo-ready yet**, see [`docs/target-repo.md`](docs/target-repo.md) (it is on React 16.3 and its
+`react-redux@5` peer range blocks installing React 18; the fork has not been created).
 
 ---
 
@@ -30,46 +41,57 @@ Bob (via migration-doctor skill):
 
 ### Prerequisites
 
-- Node.js ≥ 20
+- Node.js ≥ 20 and git
 - IBM Bob IDE with Bob 2.0
 - GitHub Personal Access Token with `repo` scope
 
 ### Setup
 
 ```bash
-# 1. Clone and install
+# 1. Clone and build (npm workspaces — install from the repo root)
 git clone https://github.com/FayazNoor/Codebase-Doctor
-cd Codebase-Doctor/backend
-npm install && npm run build
+cd Codebase-Doctor
+npm install
+npm run build            # → backend/dist/index.js
 
-# 2. Register the MCP server in Bob IDE
-#    Add to your .bob/settings.json:
-#    {
-#      "mcpServers": {
-#        "codebase-doctor": {
-#          "command": "node",
-#          "args": ["<absolute-path>/backend/dist/index.js"],
-#          "env": { "GITHUB_TOKEN": "<your-pat>" }
-#        }
-#      }
-#    }
-
-# 3. Copy .env.example and set your GitHub token
-cp .env.example .env
-# Edit .env and replace GITHUB_TOKEN value
-export GITHUB_TOKEN=ghp_...
+# 2. Register the MCP server in Bob IDE (project-level config)
+cp .bob/mcp.example.json .bob/mcp.json
+#    Edit .bob/mcp.json: set the absolute path to backend/dist/index.js and your GITHUB_TOKEN.
+#    .bob/mcp.json is gitignored — never commit it.
+#    (Alternatively add the same server entry in Bob's global MCP settings via the MCP tab.)
 ```
+
+The server reads its configuration **only from environment variables** (it does not load `.env` files).
+[`.env.example`](.env.example) documents them: `GITHUB_TOKEN` (required), `CODEBASE_DOCTOR_HOME`
+(state directory, default `~/.codebase-doctor`) and `CODEBASE_DOCTOR_PROJECT_URL` (optional).
 
 ### Run
 
 Open Bob IDE, start a new Agent mode conversation, and say:
 
 ```
-Upgrade react from 17 to 18 in https://github.com/gothinkster/react-redux-realworld-example-app
+Upgrade react from 17 to 18.3.1 in https://github.com/<owner>/<react-17-repo>
 Here are the React 18 migration docs: [attach PDF or leave blank to use built-in knowledge]
 ```
 
-The `migration-doctor` skill auto-activates and drives the full workflow.
+The `migration-doctor` skill auto-activates and drives the workflow; it stops for your "approved"
+before any code is changed.
+
+---
+
+## Current Status
+
+| Area | Status |
+|---|---|
+| MCP server — 11 tools | ✅ Implemented; typecheck, lint and build clean |
+| Tests | ✅ 141 passing (126 unit + 15 integration), no network needed |
+| React family analysis (react, react-dom, subpaths) with API-level evidence | ✅ |
+| Automated transforms: `ReactDOM.render` → `createRoot`, `ReactDOM.hydrate` → `hydrateRoot`, `act` import | ✅ |
+| Manual rules tracked honestly (`manual_required` / `completed_manual`) | ✅ |
+| Dependency step: react + react-dom synced, real install, lockfile, installed-version check | ✅ (install mocked in tests) |
+| Approval gate + verification-gated PR creation | ✅ |
+| Real end-to-end run in Bob against a GitHub repo | ⏳ Not yet done — demo target needs preparation |
+| Web frontend | Out of scope for the hackathon (Bob IDE is the UI) — see [`frontend/README.md`](frontend/README.md) |
 
 ---
 
@@ -77,76 +99,60 @@ The `migration-doctor` skill auto-activates and drives the full workflow.
 
 ```
 Codebase-Doctor/
-├── README.md
-├── .gitignore
-├── .env.example
+├── README.md · LICENSE · .env.example · package.json (npm workspaces)
 │
-├── frontend/                    ← placeholder (Bob IDE is the UI for MVP)
-│   └── README.md
+├── frontend/                    ← post-hackathon placeholder (Bob IDE is the UI)
 │
 ├── backend/                     ← MCP server (TypeScript/Node.js ESM)
 │   ├── src/
-│   │   ├── index.ts             ← server entry + tool registration
-│   │   ├── tools/               ← one file per MCP tool (10 tools)
-│   │   ├── lib/                 ← git, AST, GitHub, session, risk helpers
-│   │   └── knowledge/           ← seeded migration knowledge base (JSON)
+│   │   ├── index.ts             ← server entry + tool registration (11 tools)
+│   │   ├── tools/               ← one file per MCP tool
+│   │   ├── lib/                 ← ast, ecosystem, risk, requirements, packages, transforms, git, github, session
+│   │   └── knowledge/           ← breaking-change knowledge base (JSON)
 │   └── test/
-│       ├── fixtures/            ← minimal React 17 app for tests
-│       └── unit/                ← Vitest unit tests (14 tests)
+│       ├── fixtures/            ← minimal React 17 app
+│       ├── unit/                ← Vitest unit tests
+│       └── integration/         ← full pipeline on a disposable git copy (no network)
 │
 ├── .bob/
-│   ├── skills/migration-doctor/ ← custom Bob skill (SKILL.md + supporting files)
-│   └── rules/AGENTS.md          ← Bob rules for this repo
+│   ├── skills/migration-doctor/ ← custom Bob skill (SKILL.md + checklist + severity guide)
+│   ├── rules/ · rules-agent/    ← Bob rules for this repo
+│   └── mcp.example.json         ← MCP server config template (copy to .bob/mcp.json)
 │
-├── docs/
-│   ├── PROBLEM_SOLUTION.md
-│   ├── BOB_USAGE.md
-│   ├── ARCHITECTURE.md
-│   ├── DEMO_SCRIPT.md
-│   └── bob-evidence/
-│       ├── fayaz/               ← Bob session screenshots + usage log
-│       │   ├── BOB_USAGE_LOG.md
-│       │   └── *.png
-│       └── teammate/            ← teammate Bob session screenshots + usage log
-│           ├── BOB_USAGE_LOG.md
-│           └── *.png
-│
-└── submission/
-    ├── problem-solution.md
-    ├── bob-statement.md
-    └── video-notes.md
+├── docs/                        ← architecture, Bob usage, demo script, evidence
+└── submission/                  ← hackathon submission texts
 ```
 
 ---
 
-## Bob Features Demonstrated
+## Bob Features Used
 
 | Feature | Where |
 |---|---|
 | Agent mode | Implementation, checks loop, PR creation |
-| Plan mode | Migration plan generation + user approval gate |
-| Parallel subagents | Analysis phase: repo + docs analysed concurrently |
-| Background subagents | Per-file-cluster deep reads during implementation |
+| Plan mode | Migration plan generation + user approval (recorded by `approve_migration_plan`) |
+| Parallel subagents | Attached-docs extraction alongside repo analysis; up to 3 high-risk file reads |
 | Document understanding | User attaches migration guide PDF |
 | Custom skill | `migration-doctor` auto-activates on upgrade intent |
 | MCP server | All backend logic exposed as reusable MCP tools |
-| HTML artifact | Before/after migration report |
-| Todo list | Live progress during implementation phase |
+| HTML artifact | Migration report |
+| Todo list | Live progress during implementation |
 
 ---
 
 ## Development
 
 ```bash
-# from repo root — or cd backend/ first
-npm run build      # tsc → backend/dist/
-npm test           # vitest unit tests (14 tests)
-npm run typecheck  # type-check without emitting
-npm run lint       # eslint backend/src/
+# from the repo root (workspace scripts) — or run the same scripts inside backend/
+npm run build             # tsc → backend/dist/
+npm test                  # all tests (unit + integration)
+npm run test:integration  # integration tests only
+npm run typecheck         # type-check without emitting
+npm run lint              # eslint backend/src
 ```
 
 ---
 
 ## License
 
-MIT
+[MIT](LICENSE)

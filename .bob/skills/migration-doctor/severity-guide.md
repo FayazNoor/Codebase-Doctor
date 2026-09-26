@@ -1,10 +1,26 @@
 # Migration Doctor — Severity Guide
 
-This guide defines how to assign risk scores (0–100) to files and changes
-during blast-radius analysis. It is the canonical reference used by:
-- The `calculate_migration_blast_radius` MCP tool (scoring algorithm in `lib/risk.ts`)
+This guide defines how risk scores (0–100) are assigned to files during
+blast-radius analysis. It is the canonical reference used by:
+- The `calculate_migration_blast_radius` MCP tool (scoring algorithm in `backend/src/lib/risk.ts`)
 - `explore` subagents in Step 1 when summarising the top high-risk files
-- Unit tests for the blast-radius tool (expected score bounds come from this table)
+- Unit tests (`backend/test/unit/risk.test.ts`) — the reference scores below are
+  asserted **exactly**, so this document, the code and the tests cannot drift apart.
+
+---
+
+## Evidence, not imports
+
+Scores come only from **concrete API usages** found by AST analysis
+(`backend/src/lib/ast.ts`): a real `ReactDOM.render(...)` call, a
+`<React.StrictMode>` tag, a named `act` import from `react-dom/test-utils`, etc.
+Importing a namespace such as `ReactDOM` is **not** evidence that a breaking API
+is used. Each breaking change in the knowledge base declares the exact
+`module` + `api` patterns that count as evidence (`detect` in
+`backend/src/knowledge/*.json`).
+
+For React, analysis covers the whole package family: `react`, `react-dom`,
+`react-dom/client`, `react-dom/test-utils`.
 
 ---
 
@@ -12,65 +28,66 @@ during blast-radius analysis. It is the canonical reference used by:
 
 | Tier | Score range | Meaning | Action |
 |------|-------------|---------|--------|
-| **High** | 70–100 | Almost certain to require non-trivial manual changes | Spawn a dedicated `explore` subagent before applying patch |
-| **Medium** | 40–69 | Likely affected; changes may be mechanical | Apply directly with careful review |
-| **Low** | 1–39 | Possibly affected; changes are trivial or auto-fixable | Apply directly |
-| **None** | 0 | File imports the dependency but uses only stable APIs | Skip |
+| **High** | 70–100 | Breaking change in a file the whole app or test harness depends on | Spawn a dedicated `explore` subagent before applying patch |
+| **Medium** | 40–69 | Breaking change present; changes are usually mechanical | Apply directly with careful review |
+| **Low** | 1–39 | Only low/medium-severity evidence (often review items) | Apply directly / review |
+| **None** | 0 | Uses the dependency, but only stable APIs | Skip |
 
 ---
 
 ## Scoring Factors
 
-Each factor adds points to the base score of 0. Scores are capped at 100.
+`score = Σ severity points + context modifiers`, capped to 0–100.
 
-### Import Depth & Volume
+### Breaking-change evidence (per distinct breaking change found in the file)
+
+| Severity of the breaking change | Points |
+|---|---|
+| high | +40 |
+| medium | +20 |
+| low | +10 |
+
+A breaking change counts once per file no matter how many call sites it has.
+
+### Context modifiers (only when the file has ≥ 1 breaking-change hit)
 
 | Condition | Points |
 |---|---|
-| File imports ≥ 5 distinct symbols from the dependency | +20 |
-| File imports ≥ 2 symbols that appear in the breaking-changes list | +30 |
-| File is an entry point (`index.ts`, `main.ts`, `App.tsx`) | +15 |
-| File re-exports dependency symbols to other modules | +25 |
+| **Root bootstrap** — a non-test file calls an API that creates/renders the app root (React: `render`/`hydrate` from `react-dom`, `createRoot`/`hydrateRoot` from `react-dom/client`) | +30 |
+| **Test harness** — the file is a test (`*.test.*`, `*.spec.*`, `__tests__/`) | +20 |
 
-### Usage Pattern
+Files with no breaking-change evidence always score 0, whatever their name.
 
-| Condition | Points |
-|---|---|
-| Uses a removed API (confirmed breaking) | +40 |
-| Uses a deprecated API (warning in old version, error in new) | +25 |
-| Uses an API whose signature changed | +20 |
-| Uses an API that changed async/sync behaviour | +30 |
-| Uses an API that changed default options | +10 |
+### Severities in the React 17 → 18 knowledge base
 
-### Test File Modifiers
-
-| Condition | Points |
-|---|---|
-| File is a test file AND uses testing utilities that changed | +20 |
-| File is a test file AND only uses stable testing utilities | −10 (minimum 0) |
-
-### Config & Bootstrap Modifiers
-
-| Condition | Points |
-|---|---|
-| File is the app bootstrap / entry (contains `render`, `mount`, `createApp`) | +20 |
-| File is a framework config (vite/webpack/jest config) | +15 |
+| ID | Evidence pattern | Severity | Kind |
+|---|---|---|---|
+| react-bc-1 | `render` from `react-dom` | high | automated |
+| react-bc-2 | `hydrate` from `react-dom` | high | automated |
+| react-bc-3 | `act` from `react-dom/test-utils` | medium | automated (needs react ≥ 18.3) |
+| react-bc-4 | `useState`, `useReducer`, `Component`, `PureComponent` from `react` | medium | manual review |
+| react-bc-5 | `render` from `react-dom` with ≥ 3 arguments | medium | manual |
+| react-bc-6 | `StrictMode` from `react` | low | manual review |
+| react-bc-7 | `unstable_batchedUpdates` from `react-dom` | low | manual |
 
 ---
 
-## Well-Known React 17 → 18 Score Examples
+## Reference Scores (React 17 → 18)
 
-These are reference scores for the demo migration. The scoring algorithm in
-`lib/risk.ts` must reproduce these within ±5 points on the fixture repo.
+Computed by `lib/risk.ts` and asserted exactly in `risk.test.ts`. Files marked
+*fixture* are in `backend/test/fixtures/react17-app/`.
 
-| Pattern | Expected score |
-|---|---|
-| File containing `ReactDOM.render(...)` | 85 |
-| File containing `import { act } from 'react-dom/test-utils'` in a test | 55 |
-| File using only `useState`, `useEffect` hooks | 15 |
-| File using `ReactDOM.hydrate(...)` | 90 |
-| File importing `React` but only for JSX transform (no API calls) | 5 |
-| `App.tsx` entry using `ReactDOM.render` + `React.StrictMode` | 95 |
+| Pattern | Calculation | Score | Tier |
+|---|---|---|---|
+| Entry with `ReactDOM.render(<React.StrictMode>…)` (*fixture* `src/index.jsx`) | bc-1 40 + bc-6 10 + root bootstrap 30 | **80** | High |
+| Test with `act` from `react-dom/test-utils` + `ReactDOM.render` (*fixture* `src/App.test.jsx`) | bc-1 40 + bc-3 20 + test harness 20 | **80** | High |
+| `ReactDOM.hydrate(<App />, el)` (*fixture* `src/hydrate.jsx`) | bc-2 40 + root bootstrap 30 | **70** | High |
+| `ReactDOM.render` with a callback (3rd argument) | bc-1 40 + bc-5 20 + root bootstrap 30 | **90** | High |
+| Test that only imports/calls `act` from `react-dom/test-utils` | bc-3 20 + test harness 20 | **40** | Medium |
+| `unstable_batchedUpdates` + `useState` (*fixture* `src/BatchedUpdatesExample.jsx`) | bc-4 20 + bc-7 10 | **30** | Low |
+| Component using only `useState` / `useEffect` (*fixture* `src/StableComponent.tsx`) | bc-4 20 (automatic-batching review) | **20** | Low |
+| `import ReactDOM from 'react-dom'` with no changed API used | — | **0** | None |
+| `React` imported only for JSX | — | **0** | None |
 
 ---
 
