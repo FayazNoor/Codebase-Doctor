@@ -9,6 +9,9 @@ dist/
 .env
 .env.local
 
+# Local Bob MCP config (may contain a GitHub token) — see .bob/mcp.example.json
+.bob/mcp.json
+
 # OS
 .DS_Store
 Thumbs.db

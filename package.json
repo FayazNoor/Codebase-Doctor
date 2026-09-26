@@ -3,12 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "description": "AI-Assisted Dependency Upgrade Doctor powered by IBM Bob 2.0",
+  "license": "MIT",
+  "homepage": "https://github.com/FayazNoor/Codebase-Doctor",
   "workspaces": [
     "backend"
   ],
   "scripts": {
     "build": "npm run build --workspace=backend",
     "test": "npm run test --workspace=backend",
+    "test:integration": "npm run test:integration --workspace=backend",
+    "typecheck": "npm run typecheck --workspace=backend",
     "lint": "npm run lint --workspace=backend"
   },
   "engines": {
