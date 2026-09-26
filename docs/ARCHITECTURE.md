@@ -102,7 +102,7 @@ Codebase-Doctor/
 │       ├── fayaz/
 │       │   ├── BOB_USAGE_LOG.md    ← timestamped session record
 │       │   └── 0N-*.png            ← Bob session screenshots (real captures)
-│       └── teammate/
+│       └── uzair/
 │           ├── BOB_USAGE_LOG.md    ← teammate session record (empty until sessions are logged)
 │           └── README.md
 │
