@@ -37,13 +37,18 @@ export interface CommandResult {
 export type CommandRunner = (cmd: string, args: string[], cwd: string) => CommandResult;
 
 const defaultRunner: CommandRunner = (cmd, args, cwd) => {
+  // On Windows, package-manager binaries are .cmd scripts and cannot be
+  // found by execFileSync without shell resolution.
+  const isWindows = process.platform === "win32";
+  const resolvedCmd = isWindows && !cmd.includes(".") ? `${cmd}.cmd` : cmd;
   try {
-    const out = execFileSync(cmd, args, {
+    const out = execFileSync(resolvedCmd, args, {
       cwd,
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
       timeout: 10 * 60_000,
       env: { ...process.env, CI: "true" },
+      shell: isWindows,
     });
     return { ok: true, output: out };
   } catch (err) {
