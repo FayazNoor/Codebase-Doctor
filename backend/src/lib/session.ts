@@ -1,5 +1,6 @@
 /**
- * Session state — read/write JSON files in ~/.codebase-doctor/sessions/<id>/
+ * Session state — read/write JSON files in <home>/sessions/<id>/
+ * (<home> = $CODEBASE_DOCTOR_HOME, default ~/.codebase-doctor).
  *
  * All session data lives on disk so it survives Bob context resets.
  * Every tool reads session state at entry and writes it on exit.
@@ -22,10 +23,13 @@ import type {
 // Paths
 // ---------------------------------------------------------------------------
 
-const BASE_DIR = path.join(os.homedir(), ".codebase-doctor", "sessions");
+/** Root for sessions and clones. Evaluated per call so tests can override it. */
+export function doctorHome(): string {
+  return process.env["CODEBASE_DOCTOR_HOME"] || path.join(os.homedir(), ".codebase-doctor");
+}
 
 export function sessionDir(sessionId: string): string {
-  return path.join(BASE_DIR, sessionId);
+  return path.join(doctorHome(), "sessions", sessionId);
 }
 
 function sessionFile(sessionId: string): string {
@@ -113,7 +117,19 @@ export function writeRequirements(sessionId: string, data: MigrationRequirements
 }
 
 export function readRequirements(sessionId: string): MigrationRequirements {
-  return readJson<MigrationRequirements>(requirementsFile(sessionId));
+  try {
+    return readJson<MigrationRequirements>(requirementsFile(sessionId));
+  } catch {
+    throw new Error(
+      `No migration requirements for session '${sessionId}'. Call load_migration_requirements first.`
+    );
+  }
+}
+
+export function readRequirementsIfExists(sessionId: string): MigrationRequirements | null {
+  return fs.existsSync(requirementsFile(sessionId))
+    ? readJson<MigrationRequirements>(requirementsFile(sessionId))
+    : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,7 +141,17 @@ export function writePlan(sessionId: string, data: MigrationPlan): void {
 }
 
 export function readPlan(sessionId: string): MigrationPlan {
-  return readJson<MigrationPlan>(planFile(sessionId));
+  try {
+    return readJson<MigrationPlan>(planFile(sessionId));
+  } catch {
+    throw new Error(
+      `No migration plan for session '${sessionId}'. Call generate_migration_plan first.`
+    );
+  }
+}
+
+export function readPlanIfExists(sessionId: string): MigrationPlan | null {
+  return fs.existsSync(planFile(sessionId)) ? readJson<MigrationPlan>(planFile(sessionId)) : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -140,9 +166,30 @@ export function readChecks(sessionId: string): ChecksResult {
   return readJson<ChecksResult>(checksFile(sessionId));
 }
 
+export function readChecksIfExists(sessionId: string): ChecksResult | null {
+  return fs.existsSync(checksFile(sessionId)) ? readJson<ChecksResult>(checksFile(sessionId)) : null;
+}
+
 // ---------------------------------------------------------------------------
 // Utility: assert session exists
 // ---------------------------------------------------------------------------
+
+/**
+ * Approval gate: throws unless the CURRENT plan has a recorded approval.
+ * Every source-changing tool (checkout_branch, apply_migration_patch,
+ * create_pull_request) calls this before touching the repository.
+ */
+export function assertPlanApproved(sessionId: string): MigrationPlan {
+  const plan = readPlan(sessionId);
+  if (!plan.approval?.approved || plan.approval.planId !== plan.planId) {
+    throw new Error(
+      `Migration plan ${plan.planId} has not been approved. Present the plan to the user; ` +
+        `after they type "approved", call approve_migration_plan with ` +
+        `{ sessionId, planId: "${plan.planId}", confirmation: "approved" }.`
+    );
+  }
+  return plan;
+}
 
 export function assertSession(sessionId: string): Session {
   try {

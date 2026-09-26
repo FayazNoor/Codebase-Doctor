@@ -1,163 +1,141 @@
-import { describe, it, expect } from "vitest";
-import {
-  scoreUsage,
-  calculateBlastRadius,
-  blastRadiusLabel,
-} from "../../src/lib/risk.js";
-import type { DependencyUsage, BreakingChange } from "../../src/types.js";
+/**
+ * Risk scoring tests. Expected scores are EXACT and are the same reference
+ * values documented (with their breakdown) in
+ * .bob/skills/migration-doctor/severity-guide.md.
+ */
 
-// ---------------------------------------------------------------------------
-// Test data matching the fixture app and severity-guide.md reference scores
-// ---------------------------------------------------------------------------
+import { describe, it, expect, afterAll } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { calculateBlastRadius, scoreFile, blastRadiusLabel, matchBreakingChanges } from "../../src/lib/risk.js";
+import { findDependencyUsages } from "../../src/lib/ast.js";
+import { resolveEcosystem } from "../../src/lib/ecosystem.js";
+import { loadKnowledgeFile } from "../../src/lib/requirements.js";
+import { FIXTURE_SRC, removeDir } from "../helpers.js";
 
-const REACT_18_BREAKING_CHANGES: BreakingChange[] = [
-  {
-    id: "react-bc-1",
-    description: "ReactDOM.render() removed",
-    affectedApis: ["ReactDOM", "render"],
-    affectedFiles: [],
-    automatable: true,
-    codemods: [],
-    severity: "high",
-  },
-  {
-    id: "react-bc-3",
-    description: "act() deprecated from react-dom/test-utils",
-    affectedApis: ["act"],
-    affectedFiles: [],
-    automatable: true,
-    codemods: [],
-    severity: "medium",
-  },
-];
+const eco = resolveEcosystem("react");
+const KB = loadKnowledgeFile("react-17-to-18.json");
+const ctx = { bootstrapApis: eco.bootstrapApis };
 
-function makeUsage(overrides: Partial<DependencyUsage> = {}): DependencyUsage {
-  return {
-    file: "src/SomeComponent.tsx",
-    line: 1,
-    column: 0,
-    importSpecifier: "React",
-    usageContext: "import React from 'react'",
-    riskScore: 0,
-    breakingChangeIds: [],
-    ...overrides,
-  };
+function scoreSource(file: string, source: string) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cd-risk-"));
+  tmp.push(dir);
+  fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+  fs.writeFileSync(path.join(dir, file), source);
+  const usages = findDependencyUsages({ repoPath: dir, dependency: eco.packages });
+  return scoreFile(file, usages, KB, ctx);
 }
+const tmp: string[] = [];
+afterAll(() => tmp.forEach(removeDir));
 
-// ---------------------------------------------------------------------------
-// scoreUsage tests
-// ---------------------------------------------------------------------------
+describe("fixture reference scores (severity-guide.md)", () => {
+  const usages = findDependencyUsages({ repoPath: FIXTURE_SRC, dependency: eco.packages });
+  const report = calculateBlastRadius(usages, KB, ctx);
+  const score = (file: string) => report.topAffectedFiles.find((f) => f.file === file)?.riskScore ?? 0;
 
-describe("scoreUsage", () => {
-  it("scores a ReactDOM.render usage at 85+ (matches severity-guide reference)", () => {
-    const usage = makeUsage({
-      file: "src/index.jsx",
-      importSpecifier: "ReactDOM",
-      usageContext: "ReactDOM.render(<App />, document.getElementById('root'))",
-    });
-
-    scoreUsage(usage, REACT_18_BREAKING_CHANGES, [usage]);
-
-    // severity-guide.md: "File containing ReactDOM.render → expected score 85"
-    // The score includes: usesDeprecatedApi(25) + isEntryPoint(15) + isBootstrapFile(20) = 60 min
-    expect(usage.riskScore).toBeGreaterThanOrEqual(55);
-    expect(usage.riskScore).toBeLessThanOrEqual(100);
-    expect(usage.breakingChangeIds).toContain("react-bc-1");
+  it("entry file with ReactDOM.render + <React.StrictMode> = 80 (bc-1 40 + bc-6 10 + root bootstrap 30)", () => {
+    expect(score("src/index.jsx")).toBe(80);
+    expect(report.topAffectedFiles.find((f) => f.file === "src/index.jsx")!.reason).toBe(
+      "react-bc-1 +40, react-bc-6 +10, root bootstrap +30"
+    );
   });
 
-  it("scores act() in a test file at 50–65 (matches severity-guide reference)", () => {
-    const usage = makeUsage({
-      file: "src/App.test.jsx",
-      importSpecifier: "{ act }",
-      usageContext: "import { act } from 'react-dom/test-utils'",
-    });
-
-    scoreUsage(usage, REACT_18_BREAKING_CHANGES, [usage]);
-
-    // severity-guide.md: "act from react-dom/test-utils in a test → expected score 55"
-    // Score: usesChangedSignature(20) + testWithChangedUtils(20) = 40 min
-    expect(usage.riskScore).toBeGreaterThanOrEqual(35);
-    expect(usage.riskScore).toBeLessThanOrEqual(70);
-    expect(usage.breakingChangeIds).toContain("react-bc-3");
+  it("ReactDOM.hydrate(...) = 70 (bc-2 40 + root bootstrap 30)", () => {
+    expect(score("src/hydrate.jsx")).toBe(70);
   });
 
-  it("scores a stable-only hooks component at 0–20 (matches severity-guide reference)", () => {
-    const usage = makeUsage({
-      file: "src/StableComponent.tsx",
-      importSpecifier: "React, { useState, useEffect }",
-      usageContext: "import React, { useState, useEffect } from 'react'",
-    });
-
-    scoreUsage(usage, REACT_18_BREAKING_CHANGES, [usage]);
-
-    // severity-guide.md: "useState/useEffect only → expected score 15"
-    expect(usage.riskScore).toBeGreaterThanOrEqual(0);
-    expect(usage.riskScore).toBeLessThanOrEqual(25);
-    expect(usage.breakingChangeIds).toHaveLength(0);
+  it("test file with act from react-dom/test-utils + ReactDOM.render = 80 (bc-1 40 + bc-3 20 + test harness 20)", () => {
+    expect(score("src/App.test.jsx")).toBe(80);
   });
 
-  it("clamps score to 100 for extreme cases", () => {
-    const usage = makeUsage({
-      file: "src/index.tsx",
-      importSpecifier: "ReactDOM, { useState, useEffect, useContext, useRef, useMemo }",
-      usageContext: "ReactDOM.render(<App />, ...)",
-    });
-
-    scoreUsage(usage, REACT_18_BREAKING_CHANGES, [usage]);
-
-    expect(usage.riskScore).toBeLessThanOrEqual(100);
+  it("unstable_batchedUpdates + useState = 30 (bc-4 20 + bc-7 10)", () => {
+    expect(score("src/BatchedUpdatesExample.jsx")).toBe(30);
   });
 
-  it("scores never go negative", () => {
-    const usage = makeUsage({
-      file: "src/utils.test.ts",
-      importSpecifier: "{ something }",
-      usageContext: "import { something } from 'react'",
-    });
-
-    scoreUsage(usage, [], [usage]);
-
-    expect(usage.riskScore).toBeGreaterThanOrEqual(0);
+  it("hooks-only component (useState/useEffect) = 20 (bc-4 automatic-batching review)", () => {
+    expect(score("src/StableComponent.tsx")).toBe(20);
+    expect(score("src/App.jsx")).toBe(20);
   });
-});
 
-// ---------------------------------------------------------------------------
-// calculateBlastRadius tests
-// ---------------------------------------------------------------------------
-
-describe("calculateBlastRadius", () => {
-  it("returns correct counts across risk tiers", () => {
-    const usages: DependencyUsage[] = [
-      makeUsage({ file: "src/index.jsx", importSpecifier: "ReactDOM", usageContext: "ReactDOM.render(...)" }),
-      makeUsage({ file: "src/App.test.jsx", importSpecifier: "{ act }", usageContext: "import { act } from 'react-dom/test-utils'" }),
-      makeUsage({ file: "src/StableComponent.tsx", importSpecifier: "React, { useState }", usageContext: "import React from 'react'" }),
-    ];
-
-    const report = calculateBlastRadius(usages, REACT_18_BREAKING_CHANGES);
-
-    expect(report.totalFiles).toBe(3);
-    expect(report.affectedFiles).toBeGreaterThanOrEqual(2);
-    // high threshold is 70; ReactDOM.render usage scores ~55-65 — may be medium
-    expect(report.riskDistribution.high + report.riskDistribution.medium).toBeGreaterThanOrEqual(1);
+  it("risk distribution follows the tiers (high ≥70, medium 40–69, low 1–39)", () => {
+    expect(report.totalFiles).toBe(6);
+    expect(report.affectedFiles).toBe(6);
+    expect(report.riskDistribution).toEqual({ high: 3, medium: 0, low: 3 });
+    expect(blastRadiusLabel(report)).toContain("Moderate");
   });
 
   it("topAffectedFiles are sorted by risk score descending", () => {
-    const usages: DependencyUsage[] = [
-      makeUsage({ file: "src/index.jsx", importSpecifier: "ReactDOM", usageContext: "ReactDOM.render(...)" }),
-      makeUsage({ file: "src/stable.tsx", importSpecifier: "React, { useState }", usageContext: "" }),
-    ];
+    const scores = report.topAffectedFiles.map((f) => f.riskScore);
+    expect(scores).toEqual([...scores].sort((a, b) => b - a));
+  });
 
-    const report = calculateBlastRadius(usages, REACT_18_BREAKING_CHANGES);
-
-    expect(report.topAffectedFiles[0].riskScore).toBeGreaterThanOrEqual(
-      report.topAffectedFiles[report.topAffectedFiles.length - 1].riskScore
-    );
+  it("is idempotent — rescoring does not duplicate breakingChangeIds", () => {
+    const again = calculateBlastRadius(usages, KB, ctx);
+    expect(again).toEqual(report);
+    const render = usages.find((u) => u.file === "src/index.jsx" && u.api === "render")!;
+    expect(render.breakingChangeIds).toEqual(["react-bc-1"]);
   });
 });
 
-// ---------------------------------------------------------------------------
-// blastRadiusLabel tests
-// ---------------------------------------------------------------------------
+describe("scoreFile — evidence, not imports", () => {
+  it("importing ReactDOM without calling a changed API scores 0", () => {
+    expect(scoreSource("src/util.js", "import ReactDOM from 'react-dom';\nexport const x = 1;\n").riskScore).toBe(0);
+  });
+
+  it("React imported only for JSX scores 0", () => {
+    expect(scoreSource("src/Button.jsx", "import React from 'react';\nexport default () => <button />;\n").riskScore).toBe(0);
+  });
+
+  it("act from react-dom/test-utils in a test = 40 (bc-3 20 + test harness 20)", () => {
+    const r = scoreSource(
+      "src/Button.test.jsx",
+      "import { act } from 'react-dom/test-utils';\nact(() => {});\n"
+    );
+    expect(r.riskScore).toBe(40);
+    expect(r.breakingChangeIds).toEqual(["react-bc-3"]);
+  });
+
+  it("act imported from 'react' (already migrated) is not bc-3 evidence", () => {
+    expect(scoreSource("src/B.test.jsx", "import { act } from 'react';\nact(() => {});\n").riskScore).toBe(0);
+  });
+
+  it("ReactDOM.render with a callback in an entry file = 90 (bc-1 40 + bc-5 20 + root bootstrap 30)", () => {
+    const r = scoreSource(
+      "src/index.js",
+      "import ReactDOM from 'react-dom';\nReactDOM.render(<App />, root, () => {});\n"
+    );
+    expect(r.riskScore).toBe(90);
+    expect(r.breakingChangeIds).toEqual(["react-bc-1", "react-bc-5"]);
+  });
+
+  it("clamps to 100", () => {
+    const r = scoreSource(
+      "src/index.js",
+      [
+        "import ReactDOM from 'react-dom';",
+        "import React, { useState } from 'react';",
+        "ReactDOM.render(<React.StrictMode><App /></React.StrictMode>, root, () => {});",
+        "ReactDOM.hydrate(<App />, root);",
+        "ReactDOM.unstable_batchedUpdates(() => {});",
+      ].join("\n")
+    );
+    expect(r.riskScore).toBe(100);
+  });
+});
+
+describe("matchBreakingChanges", () => {
+  it("falls back to affectedApis for rules without detect patterns", () => {
+    const usage = {
+      file: "a.js", line: 1, column: 0, kind: "api" as const, module: "express", api: "json",
+      argCount: 0, importSpecifier: "express.json", usageContext: "", riskScore: 0, breakingChangeIds: [],
+    };
+    const ids = matchBreakingChanges(usage, [
+      { id: "x", description: "", affectedApis: ["json"], affectedFiles: [], automatable: false, codemods: [], severity: "low" },
+    ]);
+    expect(ids).toEqual(["x"]);
+  });
+});
 
 describe("blastRadiusLabel", () => {
   it("returns minimal label when high count is 0", () => {

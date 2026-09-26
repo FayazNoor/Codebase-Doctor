@@ -10,9 +10,9 @@ import {
   readAnalysis,
   readRequirements,
   writeAnalysis,
-  setPhase,
 } from "../lib/session.js";
 import { calculateBlastRadius, blastRadiusLabel } from "../lib/risk.js";
+import { resolveEcosystem } from "../lib/ecosystem.js";
 
 interface Input {
   sessionId: string;
@@ -21,21 +21,23 @@ interface Input {
 export async function calculateMigrationBlastRadius(input: Input): Promise<string> {
   const { sessionId } = input;
 
-  assertSession(sessionId);
+  const session = assertSession(sessionId);
 
   const analysis = readAnalysis(sessionId);
   const requirements = readRequirements(sessionId);
+  const { bootstrapApis } = resolveEcosystem(session.upgrade.dependency);
 
-  // Score all usages and build blast radius report
+  // Score all usages from concrete API evidence. Deterministic and idempotent:
+  // breakingChangeIds are recomputed from scratch on every call.
   const report = calculateBlastRadius(
     analysis.dependencyUsages,
-    requirements.breakingChanges
+    requirements.breakingChanges,
+    { bootstrapApis }
   );
 
   // Persist updated analysis (usages now have riskScore + breakingChangeIds)
   analysis.blastRadius = report;
   writeAnalysis(sessionId, analysis);
-  setPhase(sessionId, "plan_ready");
 
   const label = blastRadiusLabel(report);
   const top5 = report.topAffectedFiles.slice(0, 5);

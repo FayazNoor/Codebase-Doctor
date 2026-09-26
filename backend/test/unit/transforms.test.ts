@@ -263,3 +263,60 @@ describe('App', () => {
     expect(output).not.toContain("react-dom/test-utils");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Import handling (regressions)
+// ---------------------------------------------------------------------------
+
+describe("react-dom import handling", () => {
+  it("keeps the react-dom import when other ReactDOM members are still used", () => {
+    const input = `import ReactDOM from 'react-dom';
+ReactDOM.render(<App />, root);
+ReactDOM.unstable_batchedUpdates(() => {});
+`;
+    const output = transformReactDOMRender(input);
+    expect(output).toContain("import ReactDOM from 'react-dom';\nimport { createRoot } from 'react-dom/client';");
+    expect(output).toContain("createRoot(root).render(<App />)");
+    expect(output).toContain("ReactDOM.unstable_batchedUpdates");
+  });
+
+  it("does not remove the import when a 3-argument render call is left for manual migration", () => {
+    const input = `import ReactDOM from 'react-dom';
+ReactDOM.render(<A />, a);
+ReactDOM.render(<B />, b, () => done());
+`;
+    const output = transformReactDOMRender(input);
+    expect(output).toContain("import ReactDOM from 'react-dom';");
+    expect(output).toContain("createRoot(a).render(<A />)");
+    expect(output).toContain("ReactDOM.render(<B />, b, () => done())");
+  });
+
+  it("supports any local binding name, including namespace imports", () => {
+    const input = `import * as Dom from "react-dom";
+Dom.render(<App />, root);
+`;
+    const output = transformReactDOMRender(input);
+    expect(output).toBe(`import { createRoot } from 'react-dom/client';
+createRoot(root).render(<App />);
+`);
+  });
+
+  it("does not match a different identifier that ends with the binding name", () => {
+    const input = `import ReactDOM from 'react-dom';
+MyReactDOM.render(<App />, root);
+`;
+    expect(transformReactDOMRender(input)).toBe(input);
+  });
+
+  it("merges into an existing react-dom/client import and ignores comments", () => {
+    const input = `import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
+// ReactDOM.hydrate was used here before
+ReactDOM.hydrate(<App />, root);
+`;
+    const output = transformReactDOMHydrate(input);
+    expect(output).toContain("import { createRoot, hydrateRoot } from 'react-dom/client';");
+    expect(output).not.toContain("import ReactDOM from 'react-dom'");
+    expect(output).toContain("hydrateRoot(root, <App />)");
+  });
+});

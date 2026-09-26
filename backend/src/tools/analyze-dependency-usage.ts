@@ -1,16 +1,19 @@
 /**
  * Tool: analyze_dependency_usage
  *
- * Clones the repository, detects tooling, and runs AST analysis to find
- * every usage of the target dependency. Creates and persists the session.
+ * Clones the repository, detects tooling, and runs AST analysis to find the
+ * import sites and concrete API usages of the target dependency's package
+ * family (for React: react, react-dom, react-dom/client, react-dom/test-utils).
+ * Creates and persists a NEW session on every call.
  */
 
 import path from "node:path";
 import fs from "node:fs";
-import { cloneRepo, detectDefaultBranch } from "../lib/git.js";
+import { cloneRepo } from "../lib/git.js";
 import { findDependencyUsages } from "../lib/ast.js";
+import { resolveEcosystem } from "../lib/ecosystem.js";
 import { parseGitHubUrl, getRepoInfo } from "../lib/github.js";
-import { createSession, writeAnalysis, sessionDir } from "../lib/session.js";
+import { createSession, writeAnalysis, updateSession } from "../lib/session.js";
 import type { AnalysisResult } from "../types.js";
 
 interface Input {
@@ -84,8 +87,9 @@ export async function analyzeDependencyUsage(input: Input): Promise<string> {
   const buildCommand = scripts["build"] ? `${packageManager} run build` : null;
   const lintCommand = scripts["lint"] ? `${packageManager} run lint` : null;
 
-  // AST analysis
-  const usages = findDependencyUsages({ repoPath: localPath, dependency });
+  // AST analysis over the whole package family (react + react-dom …)
+  const ecosystem = resolveEcosystem(dependency);
+  const usages = findDependencyUsages({ repoPath: localPath, dependency: ecosystem.packages });
 
   const analysis: AnalysisResult = {
     repoLanguage,
@@ -101,7 +105,6 @@ export async function analyzeDependencyUsage(input: Input): Promise<string> {
   // Persist
   writeAnalysis(session.id, analysis);
   // Update session with resolved values
-  const { updateSession } = await import("../lib/session.js");
   updateSession(session.id, {
     repo: { ...session.repo, localPath },
     upgrade: { ...session.upgrade, fromVersion },
@@ -109,11 +112,13 @@ export async function analyzeDependencyUsage(input: Input): Promise<string> {
 
   // Compact summary for Bob context
   const fileCount = new Set(usages.map((u) => u.file)).size;
+  const imports = usages.filter((u) => u.kind === "import").length;
+  const apiUses = usages.length - imports;
   return [
     `✅ Session created: ${session.id}`,
     `📦 ${dependency} ${fromVersion} → ${targetVersion}`,
     `📁 Repository: ${owner}/${repo} (${repoLanguage}, ${packageManager})`,
-    `🔍 Found ${usages.length} import sites across ${fileCount} files`,
+    `🔍 Scanned ${ecosystem.packages.join(" + ")}: ${imports} import sites, ${apiUses} API usages across ${fileCount} files`,
     `🧪 Test framework: ${testFramework ?? "not detected"}`,
     `⚙️  Commands — build: ${buildCommand ?? "none"}, test: ${testCommand ?? "none"}, lint: ${lintCommand ?? "none"}`,
     ``,

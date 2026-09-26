@@ -47,7 +47,19 @@ export interface CreatePrOptions {
   body: string;
 }
 
-export async function createPr(opts: CreatePrOptions): Promise<string> {
+export interface PrRef {
+  url: string;
+  number: number;
+}
+
+/** Return an already-open PR for `head` → `base`, if any (prevents duplicates on retry). */
+export async function findOpenPr(owner: string, repo: string, head: string, base: string): Promise<PrRef | null> {
+  const { data } = await getOctokit().pulls.list({ owner, repo, head: `${owner}:${head}`, base, state: "open" });
+  const pr = data[0];
+  return pr ? { url: pr.html_url, number: pr.number } : null;
+}
+
+export async function createPr(opts: CreatePrOptions): Promise<PrRef> {
   const { data } = await getOctokit().pulls.create({
     owner: opts.owner,
     repo: opts.repo,
@@ -69,7 +81,7 @@ export async function createPr(opts: CreatePrOptions): Promise<string> {
     // Labels may not exist in the target repo — not a fatal error
   }
 
-  return data.html_url;
+  return { url: data.html_url, number: data.number };
 }
 
 // ---------------------------------------------------------------------------

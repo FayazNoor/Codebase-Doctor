@@ -1,69 +1,97 @@
 [
   {
     "id": "react-bc-1",
-    "description": "ReactDOM.render() is removed — replace with createRoot().render()",
-    "affectedApis": ["ReactDOM", "render"],
+    "description": "ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render()",
+    "affectedApis": ["ReactDOM.render"],
     "affectedFiles": [],
     "automatable": true,
     "codemods": ["@react-codemod/create-root"],
-    "severity": "high"
+    "severity": "high",
+    "detect": [{ "module": "react-dom", "api": "render" }],
+    "resolution": "code",
+    "docsKeywords": ["ReactDOM.render", "createRoot"]
   },
   {
     "id": "react-bc-2",
-    "description": "ReactDOM.hydrate() is removed — replace with hydrateRoot()",
-    "affectedApis": ["ReactDOM", "hydrate"],
+    "description": "ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot()",
+    "affectedApis": ["ReactDOM.hydrate"],
     "affectedFiles": [],
     "automatable": true,
     "codemods": ["@react-codemod/create-root"],
-    "severity": "high"
+    "severity": "high",
+    "detect": [{ "module": "react-dom", "api": "hydrate" }],
+    "resolution": "code",
+    "docsKeywords": ["ReactDOM.hydrate", "hydrateRoot"]
   },
   {
     "id": "react-bc-3",
-    "description": "react-dom/test-utils act() is deprecated — use act() from 'react' directly",
+    "description": "act() from react-dom/test-utils is deprecated — import act from 'react' (available from React 18.3)",
     "affectedApis": ["act"],
     "affectedFiles": [],
     "automatable": true,
     "codemods": [],
-    "severity": "medium"
+    "severity": "medium",
+    "detect": [{ "module": "react-dom/test-utils", "api": "act" }],
+    "resolution": "code",
+    "minTargetVersion": "18.3.0",
+    "docsKeywords": ["react-dom/test-utils", "test-utils"],
+    "manualAction": "Change `import { act } from 'react-dom/test-utils'` to `import { act } from 'react'`. This requires react ≥ 18.3.0 to be installed."
   },
   {
     "id": "react-bc-4",
-    "description": "Automatic batching: setState calls in timeouts/promises are now batched — may affect tests relying on intermediate renders",
-    "affectedApis": ["useState", "setState"],
+    "description": "Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders",
+    "affectedApis": ["useState", "useReducer", "Component.setState"],
     "affectedFiles": [],
     "automatable": false,
     "codemods": [],
     "severity": "medium",
+    "detect": [
+      { "module": "react", "api": "useState" },
+      { "module": "react", "api": "useReducer" },
+      { "module": "react", "api": "Component" },
+      { "module": "react", "api": "PureComponent" }
+    ],
+    "resolution": "review",
+    "docsKeywords": ["automatic batching"],
     "manualAction": "Review any tests that assert on intermediate render states inside setTimeout, Promise.then, or native event handlers. Wrap those assertions in `act()` or use `flushSync` from 'react-dom' to opt out of automatic batching where needed."
   },
   {
     "id": "react-bc-5",
-    "description": "ReactDOM.render no longer supports callbacks as a third argument",
-    "affectedApis": ["ReactDOM", "render"],
+    "description": "The ReactDOM.render() callback (third argument) has no createRoot equivalent — move the logic into an effect",
+    "affectedApis": ["ReactDOM.render"],
     "affectedFiles": [],
     "automatable": false,
     "codemods": [],
     "severity": "medium",
-    "manualAction": "Search for ReactDOM.render calls with a third callback argument. Move the callback logic into the rendered component (e.g. a useEffect) or use the Promise-based API available through createRoot."
+    "detect": [{ "module": "react-dom", "api": "render", "minArgs": 3 }],
+    "resolution": "code",
+    "docsKeywords": ["render callback", "callback from render"],
+    "manualAction": "Search for ReactDOM.render calls with a third callback argument. Move the callback logic into the rendered component (e.g. a useEffect or ref callback), then migrate the call to createRoot()."
   },
   {
     "id": "react-bc-6",
-    "description": "Strict Mode now double-invokes effects in development to help detect side effects",
-    "affectedApis": [],
+    "description": "Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects",
+    "affectedApis": ["StrictMode"],
     "affectedFiles": [],
     "automatable": false,
     "codemods": [],
     "severity": "low",
+    "detect": [{ "module": "react", "api": "StrictMode" }],
+    "resolution": "review",
+    "docsKeywords": ["Strict Mode", "StrictMode"],
     "manualAction": "Audit useEffect, useLayoutEffect, and class lifecycle methods for non-idempotent side effects (network requests, analytics calls, subscriptions). Ensure cleanup functions are implemented so double-invocation does not cause observable problems in development."
   },
   {
     "id": "react-bc-7",
-    "description": "ReactDOM.unstable_batchedUpdates behaviour changed with concurrent rendering",
+    "description": "ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching",
     "affectedApis": ["unstable_batchedUpdates"],
     "affectedFiles": [],
     "automatable": false,
     "codemods": [],
     "severity": "low",
+    "detect": [{ "module": "react-dom", "api": "unstable_batchedUpdates" }],
+    "resolution": "code",
+    "docsKeywords": ["unstable_batchedUpdates"],
     "manualAction": "With React 18's automatic batching, explicit calls to unstable_batchedUpdates are no longer needed in most cases. Remove them and verify behaviour. If you need to force synchronous rendering, use flushSync from 'react-dom' instead."
   }
 ]

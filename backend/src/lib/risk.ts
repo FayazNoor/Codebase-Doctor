@@ -1,100 +1,128 @@
 /**
- * Risk scoring — blast-radius calculation.
+ * Risk scoring — evidence-based blast-radius calculation.
  *
- * Implements the scoring model documented in .bob/skills/migration-doctor/severity-guide.md.
- * The unit tests for this module use the reference scores from that file as expected bounds.
+ * Implements the scoring model documented in
+ * .bob/skills/migration-doctor/severity-guide.md. A file's score is derived
+ * ONLY from concrete API usages found by lib/ast.ts (e.g. a real
+ * `ReactDOM.render(...)` call) — importing a namespace such as `ReactDOM` is
+ * not, by itself, evidence that a breaking API is used.
+ *
+ *   score = Σ severity points of each distinct breaking change evidenced in the file
+ *         + context modifiers (only when the file has ≥1 breaking-change hit)
+ *   capped to 0–100
  */
 
+import type { ApiRef } from "./ecosystem.js";
+import { isTestFile } from "./ast.js";
 import type { DependencyUsage, BlastRadiusReport, BreakingChange } from "../types.js";
 
 // ---------------------------------------------------------------------------
 // Scoring constants (mirrors severity-guide.md)
 // ---------------------------------------------------------------------------
 
-const POINTS = {
-  importsGte5Symbols: 20,
-  importsGte2BreakingSymbols: 30,
-  isEntryPoint: 15,
-  reExportsDependency: 25,
-  usesRemovedApi: 40,
-  usesDeprecatedApi: 25,
-  usesChangedSignature: 20,
-  usesChangedAsyncBehaviour: 30,
-  usesChangedDefaults: 10,
-  testWithChangedUtils: 20,
-  testWithStableUtils: -10,
-  isBootstrapFile: 20,
-  isConfigFile: 15,
+export const POINTS = {
+  severity: { high: 40, medium: 20, low: 10 },
+  /** Non-test file calls an API that bootstraps the application root. */
+  rootBootstrap: 30,
+  /** Test file whose harness is affected by a breaking change. */
+  testHarness: 20,
 } as const;
 
-const ENTRY_POINT_PATTERNS = /\b(index|main|App|app)\.(tsx?|jsx?|mjs|cjs)$/;
-const BOOTSTRAP_PATTERNS = /\b(render|mount|createApp|createRoot|hydrate)\b/;
-const CONFIG_FILE_PATTERNS = /\.(config|rc)\.(tsx?|jsx?|mjs|cjs|json)$/;
-const TEST_FILE_PATTERNS = /\.(test|spec)\.(tsx?|jsx?|mjs|cjs)$/;
+export const TIERS = { high: 70, medium: 40 } as const;
+
+export interface ScoreContext {
+  /** APIs that bootstrap the app root (from the ecosystem definition). */
+  bootstrapApis?: ApiRef[];
+}
+
+export interface FileScore {
+  file: string;
+  riskScore: number;
+  breakingChangeIds: string[];
+  reason: string;
+}
 
 // ---------------------------------------------------------------------------
-// Public API
+// Evidence matching
 // ---------------------------------------------------------------------------
 
 /**
- * Score a single DependencyUsage against the known breaking changes.
- * Mutates `usage.riskScore` and `usage.breakingChangeIds` in place.
+ * Return the IDs of breaking changes that a single usage is concrete evidence
+ * for. Import records are never evidence on their own.
  */
-export function scoreUsage(
-  usage: DependencyUsage,
-  breakingChanges: BreakingChange[],
-  allUsagesInFile: DependencyUsage[]
-): void {
-  let score = 0;
-
-  const importedSymbols = parseImportedSymbols(usage.importSpecifier);
-  const breakingApiSet = new Set(breakingChanges.flatMap((bc) => bc.affectedApis));
-
-  const breakingSymbolsUsed = importedSymbols.filter((s) => breakingApiSet.has(s));
-
-  // Import volume
-  if (importedSymbols.length >= 5) score += POINTS.importsGte5Symbols;
-  if (breakingSymbolsUsed.length >= 2) score += POINTS.importsGte2BreakingSymbols;
-
-  // Entry point / config / bootstrap
-  if (ENTRY_POINT_PATTERNS.test(usage.file)) score += POINTS.isEntryPoint;
-  if (CONFIG_FILE_PATTERNS.test(usage.file)) score += POINTS.isConfigFile;
-  if (BOOTSTRAP_PATTERNS.test(usage.usageContext)) score += POINTS.isBootstrapFile;
-
-  // Test file modifiers
-  const isTest = TEST_FILE_PATTERNS.test(usage.file);
-
-  // API-level risk from breaking changes
+export function matchBreakingChanges(usage: DependencyUsage, breakingChanges: BreakingChange[]): string[] {
+  if (usage.kind !== "api" || !usage.api) return [];
+  const ids: string[] = [];
   for (const bc of breakingChanges) {
-    const overlappingApis = importedSymbols.filter((s) => bc.affectedApis.includes(s));
-    if (overlappingApis.length === 0) continue;
-
-    usage.breakingChangeIds.push(bc.id);
-
-    switch (bc.severity) {
-      case "high":
-        if (!bc.automatable) score += POINTS.usesRemovedApi;
-        else score += POINTS.usesDeprecatedApi;
-        break;
-      case "medium":
-        score += POINTS.usesChangedSignature;
-        break;
-      case "low":
-        score += POINTS.usesChangedDefaults;
-        break;
+    if (bc.detect && bc.detect.length > 0) {
+      const hit = bc.detect.some(
+        (p) =>
+          p.module === usage.module &&
+          p.api === usage.api &&
+          (p.minArgs === undefined || (usage.argCount !== null && usage.argCount >= p.minArgs))
+      );
+      if (hit) ids.push(bc.id);
+    } else if (bc.affectedApis.includes(usage.api)) {
+      // Fallback for rules without machine patterns (docs-only / other ecosystems).
+      ids.push(bc.id);
     }
+  }
+  return ids;
+}
 
+// ---------------------------------------------------------------------------
+// File scoring
+// ---------------------------------------------------------------------------
+
+/**
+ * Score one file from its usages. Mutates each usage's `breakingChangeIds`
+ * (reset first, so repeated calls are idempotent) and `riskScore`.
+ */
+export function scoreFile(
+  file: string,
+  fileUsages: DependencyUsage[],
+  breakingChanges: BreakingChange[],
+  ctx: ScoreContext = {}
+): FileScore {
+  const hitIds = new Set<string>();
+  for (const u of fileUsages) {
+    u.breakingChangeIds = matchBreakingChanges(u, breakingChanges);
+    for (const id of u.breakingChangeIds) hitIds.add(id);
+  }
+
+  const parts: string[] = [];
+  let score = 0;
+  const hits = breakingChanges.filter((bc) => hitIds.has(bc.id));
+  for (const bc of hits) {
+    const pts = POINTS.severity[bc.severity];
+    score += pts;
+    parts.push(`${bc.id} +${pts}`);
+  }
+
+  if (hits.length > 0) {
+    const isTest = isTestFile(file);
+    const bootstraps = (ctx.bootstrapApis ?? []).some((b) =>
+      fileUsages.some((u) => u.kind === "api" && u.module === b.module && u.api === b.api && u.argCount !== null)
+    );
+    if (bootstraps && !isTest) {
+      score += POINTS.rootBootstrap;
+      parts.push(`root bootstrap +${POINTS.rootBootstrap}`);
+    }
     if (isTest) {
-      score += POINTS.testWithChangedUtils;
+      score += POINTS.testHarness;
+      parts.push(`test harness +${POINTS.testHarness}`);
     }
   }
 
-  // Test file with no breaking changes
-  if (isTest && usage.breakingChangeIds.length === 0) {
-    score += POINTS.testWithStableUtils;
-  }
+  const riskScore = Math.max(0, Math.min(100, score));
+  for (const u of fileUsages) u.riskScore = riskScore;
 
-  usage.riskScore = Math.max(0, Math.min(100, score));
+  return {
+    file,
+    riskScore,
+    breakingChangeIds: hits.map((bc) => bc.id),
+    reason: parts.length > 0 ? parts.join(", ") : "Only stable APIs used (no breaking-change evidence)",
+  };
 }
 
 /**
@@ -102,9 +130,9 @@ export function scoreUsage(
  */
 export function calculateBlastRadius(
   usages: DependencyUsage[],
-  breakingChanges: BreakingChange[]
+  breakingChanges: BreakingChange[],
+  ctx: ScoreContext = {}
 ): BlastRadiusReport {
-  // Group usages by file
   const byFile = new Map<string, DependencyUsage[]>();
   for (const u of usages) {
     const list = byFile.get(u.file) ?? [];
@@ -112,29 +140,19 @@ export function calculateBlastRadius(
     byFile.set(u.file, list);
   }
 
-  // Score each file (use the max score across all usages in that file)
-  const fileScores: Array<{ file: string; riskScore: number; reason: string }> = [];
+  const fileScores = [...byFile].map(([file, fileUsages]) =>
+    scoreFile(file, fileUsages, breakingChanges, ctx)
+  );
 
-  for (const [file, fileUsages] of byFile) {
-    for (const u of fileUsages) {
-      scoreUsage(u, breakingChanges, fileUsages);
-    }
-    const maxScore = Math.max(...fileUsages.map((u) => u.riskScore));
-    const topUsage = fileUsages.find((u) => u.riskScore === maxScore)!;
-    const reason = topUsage.breakingChangeIds.length > 0
-      ? `Uses ${topUsage.breakingChangeIds.join(", ")}`
-      : "Uses dependency (no matching breaking changes)";
+  const high = fileScores.filter((f) => f.riskScore >= TIERS.high).length;
+  const medium = fileScores.filter((f) => f.riskScore >= TIERS.medium && f.riskScore < TIERS.high).length;
+  const low = fileScores.filter((f) => f.riskScore > 0 && f.riskScore < TIERS.medium).length;
 
-    fileScores.push({ file, riskScore: maxScore, reason });
-  }
-
-  const high = fileScores.filter((f) => f.riskScore >= 70).length;
-  const medium = fileScores.filter((f) => f.riskScore >= 40 && f.riskScore < 70).length;
-  const low = fileScores.filter((f) => f.riskScore > 0 && f.riskScore < 40).length;
-
-  const topAffectedFiles = [...fileScores]
-    .sort((a, b) => b.riskScore - a.riskScore)
-    .slice(0, 10);
+  const topAffectedFiles = fileScores
+    .filter((f) => f.riskScore > 0)
+    .sort((a, b) => b.riskScore - a.riskScore || a.file.localeCompare(b.file))
+    .slice(0, 10)
+    .map(({ file, riskScore, reason }) => ({ file, riskScore, reason }));
 
   return {
     totalFiles: byFile.size,
@@ -154,23 +172,4 @@ export function blastRadiusLabel(report: BlastRadiusReport): string {
   if (h <= 5) return "🟡 Moderate blast radius";
   if (h <= 20) return "🟠 Significant blast radius — review plan carefully";
   return "🔴 Large blast radius — consider splitting into multiple PRs";
-}
-
-// ---------------------------------------------------------------------------
-// Private helpers
-// ---------------------------------------------------------------------------
-
-function parseImportedSymbols(importSpecifier: string): string[] {
-  const symbols: string[] = [];
-  const namedMatch = importSpecifier.match(/\{([^}]+)\}/);
-  if (namedMatch) {
-    for (const s of namedMatch[1].split(",")) {
-      symbols.push(s.trim().split(" as ")[0].trim());
-    }
-  }
-  const defaultMatch = importSpecifier.match(/^([A-Za-z_$][A-Za-z0-9_$]*)/);
-  if (defaultMatch && !importSpecifier.trim().startsWith("{")) {
-    symbols.push(defaultMatch[1]);
-  }
-  return symbols.filter(Boolean);
 }

@@ -57,7 +57,8 @@ function splitReactArgs(args: string): { element: string; container: string } | 
  * argument string inside the outermost parens.
  */
 function findCalls(source: string, methodName: string): Array<{ start: number; end: number; args: string }> {
-  const pattern = new RegExp(`${methodName.replace(".", "\\.")}\\(`, "g");
+  // Not preceded by an identifier char or '.', so `MyReactDOM.render(` does not match.
+  const pattern = new RegExp(`(?<![\\w$.])${escapeRegExp(methodName)}\\(`, "g");
   const results: Array<{ start: number; end: number; args: string }> = [];
   let m: RegExpExecArray | null;
   while ((m = pattern.exec(source)) !== null) {
@@ -82,47 +83,105 @@ function findCalls(source: string, methodName: string): Array<{ start: number; e
 }
 
 // ---------------------------------------------------------------------------
+// Shared: locate the react-dom default/namespace binding and manage imports
+// ---------------------------------------------------------------------------
+
+const REACT_DOM_IMPORT =
+  /^import\s+(?:\*\s+as\s+)?([A-Za-z_$][\w$]*)\s+from\s+['"]react-dom['"]\s*;?[ \t]*$/m;
+
+/** Local name of `import X from 'react-dom'` / `import * as X from 'react-dom'`. */
+function reactDomBinding(source: string): string | null {
+  return source.match(REACT_DOM_IMPORT)?.[1] ?? null;
+}
+
+/** Drop line and block comments (a comment mentioning ReactDOM is not a usage). */
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:\\])\/\/.*$/gm, "$1");
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * After calls were rewritten: if the react-dom binding is no longer referenced,
+ * replace its import with `import { name } from 'react-dom/client'`; otherwise
+ * keep it (other members such as unstable_batchedUpdates still need it) and
+ * add/merge the named import from 'react-dom/client'.
+ */
+function fixReactDomImports(source: string, binding: string, name: string): string {
+  const importMatch = source.match(REACT_DOM_IMPORT);
+  if (!importMatch) return source;
+  const withoutImport = stripComments(source.replace(REACT_DOM_IMPORT, ""));
+  const stillUsed = new RegExp(`(?<![\\w$.])${escapeRegExp(binding)}\\b`).test(withoutImport);
+  const removeImportLine = (text: string) => text.replace(new RegExp(REACT_DOM_IMPORT.source + "\\n?", "m"), "");
+
+  const clientImport = /^import\s+\{([^}]*)\}\s+from\s+['"]react-dom\/client['"]\s*;?/m;
+  const existing = source.match(clientImport);
+  if (existing) {
+    // Merge into the existing react-dom/client import.
+    const names = existing[1].split(",").map((n) => n.trim()).filter(Boolean);
+    let result = source;
+    if (!names.includes(name)) {
+      result = result.replace(clientImport, `import { ${[...names, name].join(", ")} } from 'react-dom/client';`);
+    }
+    return stillUsed ? result : removeImportLine(result);
+  }
+  const newImport = `import { ${name} } from 'react-dom/client';`;
+  return stillUsed
+    ? source.replace(REACT_DOM_IMPORT, `${importMatch[0].trimEnd()}\n${newImport}`)
+    : source.replace(REACT_DOM_IMPORT, newImport);
+}
+
+/**
+ * Rewrite `<binding>.<method>(element, container)` calls whose first argument
+ * is JSX. Returns the new source and how many calls were rewritten.
+ */
+function rewriteRootCalls(
+  source: string,
+  binding: string,
+  method: "render" | "hydrate",
+  build: (element: string, container: string) => string
+): { result: string; rewritten: number } {
+  let result = source;
+  let rewritten = 0;
+  const calls = findCalls(result, `${binding}.${method}`);
+  // Process in reverse so that character positions remain valid
+  for (const call of calls.reverse()) {
+    const split = splitReactArgs(call.args);
+    if (!split) continue; // 3-argument (callback) calls stay manual — react-bc-5
+    if (!split.element.trimStart().startsWith("<")) continue;
+    result = result.slice(0, call.start) + build(split.element, split.container) + result.slice(call.end);
+    rewritten++;
+  }
+  return { result, rewritten };
+}
+
+// ---------------------------------------------------------------------------
 // react-bc-1: ReactDOM.render → createRoot().render()
 //
 // Handles these cases:
 //   import ReactDOM from 'react-dom'              → import { createRoot } from 'react-dom/client'
-//   import ReactDOM from "react-dom"              → (same, double-quote variant)
-//   ReactDOM.render(<X />, container)            → createRoot(container).render(<X />)
-//   ReactDOM.render(<X />, container)  (multi-line) — NOT rewritten (left manual)
+//   import * as ReactDOM from "react-dom"         → (same; any local binding name works)
+//   ReactDOM.render(<X />, container)             → createRoot(container).render(<X />)
+//   multi-line JSX / containers with nested calls → handled (balanced parens)
 //
-// Safety: only rewrites two-argument calls where the first argument starts
-// with a JSX element (< ...). Files already using createRoot are left unchanged.
+// Safety: only rewrites two-argument calls whose first argument is JSX.
+// Three-argument calls (render callback, react-bc-5) are left untouched. The
+// react-dom import is only removed when nothing else in the file uses it.
 // ---------------------------------------------------------------------------
 
 export function transformReactDOMRender(source: string): string {
-  // Guard: already migrated
-  if (source.includes("createRoot")) return source;
-
-  // Guard: no ReactDOM.render calls in this file — nothing to do
-  if (!/ReactDOM\.render\(/.test(source)) return source;
-
-  let result = source;
-
-  // 1. Replace the default import for react-dom with the named createRoot import.
-  result = result.replace(
-    /^import\s+ReactDOM\s+from\s+['"]react-dom['"]\s*;?/m,
-    "import { createRoot } from 'react-dom/client';"
+  const binding = reactDomBinding(source);
+  if (!binding) return source;
+  const { result, rewritten } = rewriteRootCalls(
+    source,
+    binding,
+    "render",
+    (element, container) => `createRoot(${container}).render(${element})`
   );
-
-  // 2. Replace ReactDOM.render(element, container) calls using balanced-paren
-  //    matching to correctly handle containers like document.getElementById('root').
-  const calls = findCalls(result, "ReactDOM.render");
-  // Process in reverse so that character positions remain valid
-  for (const call of calls.reverse()) {
-    const split = splitReactArgs(call.args);
-    if (!split) continue;
-    // Only transform if first argument looks like JSX
-    if (!split.element.trimStart().startsWith("<")) continue;
-    const replacement = `createRoot(${split.container}).render(${split.element})`;
-    result = result.slice(0, call.start) + replacement + result.slice(call.end);
-  }
-
-  return result;
+  if (rewritten === 0) return source; // nothing to do / already migrated
+  return fixReactDomImports(result, binding, "createRoot");
 }
 
 // ---------------------------------------------------------------------------
@@ -130,41 +189,23 @@ export function transformReactDOMRender(source: string): string {
 //
 // Handles:
 //   import ReactDOM from 'react-dom'              → import { hydrateRoot } from 'react-dom/client'
-//   ReactDOM.hydrate(<X />, container)           → hydrateRoot(container, <X />)
+//   ReactDOM.hydrate(<X />, container)            → hydrateRoot(container, <X />)
 //
 // Note the argument order swap: ReactDOM.hydrate(element, container)
 //   → hydrateRoot(container, element).
-//
-// Files that already contain hydrateRoot are left unchanged.
 // ---------------------------------------------------------------------------
 
 export function transformReactDOMHydrate(source: string): string {
-  // Guard: already migrated
-  if (source.includes("hydrateRoot")) return source;
-
-  // Only proceed if this file actually calls ReactDOM.hydrate
-  if (!/ReactDOM\.hydrate\(/.test(source)) return source;
-
-  let result = source;
-
-  // 1. Replace the default import for react-dom
-  result = result.replace(
-    /^import\s+ReactDOM\s+from\s+['"]react-dom['"]\s*;?/m,
-    "import { hydrateRoot } from 'react-dom/client';"
+  const binding = reactDomBinding(source);
+  if (!binding) return source;
+  const { result, rewritten } = rewriteRootCalls(
+    source,
+    binding,
+    "hydrate",
+    (element, container) => `hydrateRoot(${container}, ${element})`
   );
-
-  // 2. Replace ReactDOM.hydrate(element, container) using balanced-paren matching.
-  //    Argument order is swapped: hydrateRoot(container, element).
-  const calls = findCalls(result, "ReactDOM.hydrate");
-  for (const call of calls.reverse()) {
-    const split = splitReactArgs(call.args);
-    if (!split) continue;
-    if (!split.element.trimStart().startsWith("<")) continue;
-    const replacement = `hydrateRoot(${split.container}, ${split.element})`;
-    result = result.slice(0, call.start) + replacement + result.slice(call.end);
-  }
-
-  return result;
+  if (rewritten === 0) return source;
+  return fixReactDomImports(result, binding, "hydrateRoot");
 }
 
 // ---------------------------------------------------------------------------
@@ -233,3 +274,8 @@ export const REACT_TRANSFORMS: Record<string, (content: string) => string> = {
   "react-bc-2": transformReactDOMHydrate,
   "react-bc-3": transformActImport,
 };
+
+/** True only for canonical rule IDs that have a known, tested transform. */
+export function hasTransform(breakingChangeId: string): boolean {
+  return Object.prototype.hasOwnProperty.call(REACT_TRANSFORMS, breakingChangeId);
+}

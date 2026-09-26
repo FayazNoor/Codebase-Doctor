@@ -14,6 +14,7 @@ import { analyzeDependencyUsage } from "./tools/analyze-dependency-usage.js";
 import { loadMigrationRequirements } from "./tools/load-migration-requirements.js";
 import { calculateMigrationBlastRadius } from "./tools/calculate-migration-blast-radius.js";
 import { generateMigrationPlan } from "./tools/generate-migration-plan.js";
+import { approveMigrationPlan } from "./tools/approve-migration-plan.js";
 import { verifyMigration } from "./tools/verify-migration.js";
 import { checkoutBranch } from "./tools/checkout-branch.js";
 import { applyMigrationPatch } from "./tools/apply-migration-patch.js";
@@ -36,8 +37,9 @@ const server = new McpServer({
 
 server.tool(
   "analyze_dependency_usage",
-  "Clone a GitHub repository and perform AST-level analysis to find every usage of a dependency. " +
-    "Returns a sessionId and compact usage summary. Must be called first in every migration workflow.",
+  "Clone a GitHub repository and perform AST-level analysis of the dependency's package family " +
+    "(e.g. react + react-dom/client/test-utils): import sites plus concrete API usages (calls, member access, JSX). " +
+    "Creates a NEW session on every call and returns its sessionId. Must be called first in every migration workflow.",
   {
     url: z.string().url().describe("GitHub repository URL (HTTPS)"),
     dependency: z.string().describe("Dependency name as it appears in package.json, e.g. 'react'"),
@@ -99,8 +101,9 @@ server.tool(
 server.tool(
   "generate_migration_plan",
   "Generate a prioritised, step-by-step migration plan based on the analysis and blast radius. " +
-    "Writes migration-plan.json to the session directory and returns the plan as Markdown. " +
-    "Present the plan to the user for approval before calling apply_migration_patch.",
+    "Writes migration-plan.json (deterministic step IDs, content-hashed planId) and returns the plan as Markdown. " +
+    "Re-calling with unchanged inputs returns the existing plan. Present the plan to the user; after they type " +
+    "'approved', call approve_migration_plan.",
   {
     sessionId: z.string().uuid().describe("Session ID"),
   },
@@ -111,14 +114,34 @@ server.tool(
 );
 
 // ---------------------------------------------------------------------------
+// Tool: approve_migration_plan
+// ---------------------------------------------------------------------------
+
+server.tool(
+  "approve_migration_plan",
+  "Record the user's approval of the current migration plan. Call ONLY after the user has replied 'approved' " +
+    "to the presented plan. checkout_branch, apply_migration_patch and create_pull_request refuse to run until " +
+    "this is recorded. Idempotent.",
+  {
+    sessionId: z.string().uuid().describe("Session ID"),
+    planId: z.string().describe("planId shown in the generate_migration_plan output"),
+    confirmation: z.string().describe("The user's literal reply — must be 'approved'"),
+  },
+  async ({ sessionId, planId, confirmation }) => {
+    const result = await approveMigrationPlan({ sessionId, planId, confirmation });
+    return { content: [{ type: "text", text: result }] };
+  }
+);
+
+// ---------------------------------------------------------------------------
 // Tool: verify_migration
 // ---------------------------------------------------------------------------
 
 server.tool(
   "verify_migration",
-  "Run lint, test, and build commands in the cloned repository and return a structured " +
-    "pass/fail result with a failure diagnosis suitable for a subagent fix loop. " +
-    "This is the skill-facing wrapper over run_checks.",
+  "Check that node_modules holds the upgraded packages, run lint, test, and build in the cloned repository, " +
+    "persist the result (with the verified commit), and return PASS/FAIL/SKIPPED per check plus a failure " +
+    "diagnosis suitable for a subagent fix loop. This is the skill-facing wrapper over run_checks.",
   {
     sessionId: z.string().uuid().describe("Session ID"),
   },
@@ -134,9 +157,9 @@ server.tool(
 
 server.tool(
   "checkout_branch",
-  "Create and check out a new migration branch in the cloned repository. " +
-    "Branch name: codebase-doctor/{dependency}-{targetVersion}-upgrade. " +
-    "Idempotent: safe to call again if the branch already exists.",
+  "Create and check out the migration branch in the cloned repository " +
+    "(codebase-doctor/{dependency}-{targetVersion}-upgrade). Requires an approved plan. " +
+    "Idempotent: switches to the branch if it already exists.",
   {
     sessionId: z.string().uuid().describe("Session ID"),
   },
@@ -152,15 +175,22 @@ server.tool(
 
 server.tool(
   "apply_migration_patch",
-  "Apply a single migration step to the repository: make the targeted code changes " +
-    "described by the step, then commit them to the migration branch. " +
-    "Returns a diff of the changes made.",
+  "Execute one migration step on the migration branch (requires an approved plan). Dependency step: updates " +
+    "package.json for the package family, runs the package manager install (lockfile updated) and verifies installed " +
+    "versions. Codemod steps: run the known transform and re-scan for leftovers. Manual/test steps make no edits and " +
+    "are reported as 'manual_required'; after the change is made, call again with markManualComplete:true and a note. " +
+    "Returns the step status and a diff stat. Already-processed steps are skipped.",
   {
     sessionId: z.string().uuid().describe("Session ID"),
     stepId: z.string().describe("Migration step ID from migration-plan.json"),
+    markManualComplete: z
+      .boolean()
+      .optional()
+      .describe("Record that the manual change/review for this step is done (commits working-tree edits)"),
+    note: z.string().optional().describe("Required with markManualComplete: what was changed or reviewed"),
   },
-  async ({ sessionId, stepId }) => {
-    const result = await applyMigrationPatch({ sessionId, stepId });
+  async ({ sessionId, stepId, markManualComplete, note }) => {
+    const result = await applyMigrationPatch({ sessionId, stepId, markManualComplete, note });
     return { content: [{ type: "text", text: result }] };
   }
 );
@@ -194,7 +224,8 @@ server.tool(
 server.tool(
   "create_pull_request",
   "Push the migration branch to GitHub and open a pull request against the default branch. " +
-    "The PR body includes the full migration report. Returns the PR URL.",
+    "Refuses unless the plan is approved and the latest verify_migration result passed on the current commit. " +
+    "Idempotent: returns the existing PR instead of opening a duplicate. The PR body includes the migration report.",
   {
     sessionId: z.string().uuid().describe("Session ID"),
   },
@@ -210,9 +241,9 @@ server.tool(
 
 server.tool(
   "generate_report",
-  "Generate a before/after migration report as Markdown (and optionally HTML). " +
-    "Includes blast radius stats, breaking changes addressed, test results, " +
-    "and productivity metrics (wall-clock time, Bobcoin cost estimate).",
+  "Generate the migration report as Markdown or HTML from persisted session data: real lint/test/build " +
+    "results, each breaking change with its actual step status, measured metrics, clearly labelled estimates, " +
+    "and metrics that are not measured (e.g. Bobcoin usage).",
   {
     sessionId: z.string().uuid().describe("Session ID"),
     format: z
