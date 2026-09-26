@@ -73,7 +73,7 @@ docs/bob-evidence/
 │   ├── 02-repository-consistency-audit.png        ← Session C — mcp-server → backend audit
 │   ├── 03-react18-migration-engine-complete.png   ← Session D — React 18 transforms
 │   └── 04-end-to-end-integration-test.png         ← Session F — integration tests (61 tests)
-└── teammate/
+└── uzair/
     ├── BOB_USAGE_LOG.md                           ← no teammate sessions logged yet
     └── README.md
 ```
