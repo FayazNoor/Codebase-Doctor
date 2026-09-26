@@ -280,7 +280,7 @@ describe("generate_report truthfulness", () => {
     expect(md).toContain("Verification has not been run.");
     expect(md).toContain("| Test | NOT RUN |");
     expect(md).toContain("Estimated (not measured)");
-    expect(md).toMatch(/Estimated manual effort \| ~\d+(\.\d)? h \| 6 affected files × 30 min \(heuristic, not benchmarked\)/);
+    expect(md).toMatch(/Estimated manual effort \| ~\d+(\.\d)? h \| 6 affected files × 30 min\/file \(heuristic, not benchmarked\)/);
     expect(md).toContain("Bobcoin consumption — not measured");
     expect(md).toContain("Accuracy — not measured");
     expect(md).not.toMatch(/Breaking Changes Addressed/);

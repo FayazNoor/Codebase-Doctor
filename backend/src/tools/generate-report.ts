@@ -132,7 +132,7 @@ export function buildReportData(sessionId: string): ReportData {
     },
     estimated: {
       manualEffortHours,
-      basis: `${affected} affected files × ${MANUAL_MINUTES_PER_AFFECTED_FILE} min (heuristic, not benchmarked)`,
+      basis: `${affected} affected files × ${MANUAL_MINUTES_PER_AFFECTED_FILE} min/file (heuristic, not benchmarked)`,
       timeSavedHours: Math.max(0, Math.round((manualEffortHours - elapsedMinutes / 60) * 10) / 10),
     },
     unavailable: [
@@ -198,7 +198,7 @@ export function renderMarkdown(r: ReportData): string {
     `| Steps still requiring manual action | ${m.stepCounts.manual_required} |`,
     `| Steps not applicable | ${m.stepCounts.not_applicable} |`,
     `| Steps not started | ${m.stepCounts.pending} |`,
-    `| Elapsed session time (session start → this report) | ${m.elapsedMinutes} min |`,
+    `| Elapsed session time (wall-clock, session start → this report) | ${m.elapsedMinutes} min |`,
     ``,
     `### Estimated (not measured)`,
     ``,
@@ -315,7 +315,7 @@ Plan <code>${escHtml(r.planId)}</code> — ${r.approval.approved ? `approved at 
   ${card(`${m.stepCounts.applied}/${m.totalSteps}`, "Steps automatically applied")}
   ${card(String(m.stepCounts.completed_manual), "Steps manually fixed / reviewed")}
   ${card(String(m.stepCounts.manual_required), "Steps still requiring manual action")}
-  ${card(`${m.elapsedMinutes}m`, "Elapsed session time")}
+  ${card(`${m.elapsedMinutes}m`, "Elapsed session time (wall-clock)")}
 </div>
 
 <h2>Estimated (not measured)</h2>

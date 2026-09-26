@@ -4,7 +4,7 @@
       "command": "node",
       "args": ["/ABSOLUTE/PATH/TO/Codebase-Doctor/backend/dist/index.js"],
       "env": {
-        "GITHUB_TOKEN": "<your-github-pat-with-repo-scope>"
+        "GITHUB_TOKEN": "ghp_YourPersonalAccessTokenHere"
       }
     }
   }
