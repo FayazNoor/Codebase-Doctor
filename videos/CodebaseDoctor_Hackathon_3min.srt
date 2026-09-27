@@ -1,0 +1,104 @@
+1
+00:00:01,853 --> 00:00:06,273
+Upgrading React 17 to 18 looks like a version bump.
+
+2
+00:00:07,041 --> 00:00:14,910
+In a real codebase nobody knows where it's used, what will break, or whether it actually worked. So it gets put off. Again.
+
+3
+00:00:14,813 --> 00:00:23,285
+Codebase Doctor maps every usage, plans the change, waits for your approval — and opens a PR only when your own checks pass.
+
+4
+00:00:23,339 --> 00:00:26,899
+It runs inside IBM Bob. You ask in plain English.
+
+5
+00:00:26,969 --> 00:00:32,927
+Our custom migration-doctor skill activates on its own and drives 12 tools on our MCP server.
+
+6
+00:00:34,045 --> 00:00:40,990
+Attach the official upgrade guide as a PDF — Bob analyses the repo, plans, and records your approval.
+
+7
+00:00:41,605 --> 00:00:48,264
+The approved plan becomes a live to-do list in Bob, and each step is a real MCP tool call.
+
+8
+00:00:49,805 --> 00:00:54,432
+And we built it with Bob: the codemods, the migration rules, and the tests behind them.
+
+9
+00:00:54,947 --> 00:00:58,206
+Here's a real recorded run, replayed call by call.
+
+10
+00:01:00,043 --> 00:01:05,820
+First, it maps every React usage: 11 files, 19 API calls.
+
+11
+00:01:05,890 --> 00:01:09,195
+And it catches a peer conflict before anything is installed.
+
+12
+00:01:09,047 --> 00:01:12,797
+The rules are checked against the guide: 8 breaking changes apply.
+
+13
+00:01:12,867 --> 00:01:15,703
+Every file gets a risk score from real evidence.
+
+14
+00:01:16,676 --> 00:01:21,946
+Then a 10-step plan: 4 automated, 6 for a human. And it is NOT approved.
+
+15
+00:01:25,200 --> 00:01:28,618
+If the agent tries to skip ahead, the server refuses.
+
+16
+00:01:29,695 --> 00:01:31,364
+What about a casual reply?
+
+17
+00:01:33,285 --> 00:01:38,900
+Refused. Nothing changed. Only the exact word “approved” unlocks the branch.
+
+18
+00:01:40,139 --> 00:01:48,233
+Now it works: a real npm install, and codemods for createRoot, hydrateRoot and act — each in its own commit.
+
+19
+00:01:48,303 --> 00:01:52,990
+Steps with no safe automation are flagged as manual. Honestly.
+
+20
+00:01:58,527 --> 00:02:01,882
+Then it runs the repo's own lint, tests and build.
+
+21
+00:02:01,952 --> 00:02:06,711
+The first run fails — for real. So the pull request stays blocked.
+
+22
+00:02:10,426 --> 00:02:17,505
+The fixes are made in Bob, guided by that diagnosis, and recorded step by step. Second run: everything passes.
+
+23
+00:02:24,216 --> 00:02:28,898
+Only now does the pull request open — with the full report as its description.
+
+24
+00:02:33,522 --> 00:02:39,992
+One report shows it all: the risk, every change, both verification runs, and what still needs a human.
+
+25
+00:02:42,257 --> 00:02:46,061
+Codebase Doctor. Every upgrade deserves a diagnosis.
+
+26
+00:02:46,131 --> 00:02:47,577
+Built with IBM Bob.
+
