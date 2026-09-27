@@ -2,44 +2,44 @@
 
 ## System Overview
 
-Codebase Doctor is a **Bob-native application** — the Bob IDE is the frontend,
-and a local MCP server is the backend. No separate web server is required.
+Codebase Doctor is a **Bob-native application**: IBM Bob IDE is the user interface, and a local MCP server is
+the backend. There is no separate web server. The only visual surface the product generates itself is the HTML
+migration report, which Bob renders as an artifact and which also opens in any browser.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Bob IDE (frontend)                       │
-│                                                             │
-│  • User interacts via natural language in agentic chat      │
+│                    Bob IDE (user interface)                 │
+│  • natural-language request in Agent mode                   │
 │  • migration-doctor skill drives the workflow               │
-│  • Plan mode renders the approvable migration plan          │
-│  • Agent mode implements changes; todo list shows progress  │
-│  • HTML artifact renders the final migration report         │
+│  • Plan mode presents the plan; the user types "approved"   │
+│  • todo list shows progress; subagents read risky files     │
+│  • create_html_artifact renders the migration report        │
 └────────────────────────┬────────────────────────────────────┘
-                         │  MCP stdio (local)
+                         │  MCP over stdio
 ┌────────────────────────▼────────────────────────────────────┐
-│              Codebase Doctor MCP Server                     │
-│              backend/  (Node.js / TypeScript ESM)           │
+│          Codebase Doctor MCP server  (backend/, Node ESM)   │
 │                                                             │
-│  analyze_dependency_usage      AST usage + API evidence     │
-│  load_migration_requirements   knowledge base + docs        │
-│  calculate_migration_blast_radius  risk scoring             │
-│  generate_migration_plan       plan builder                 │
-│  approve_migration_plan        records human approval       │
-│  checkout_branch               git branch (approval-gated)  │
-│  apply_migration_patch         install / transforms / manual│
-│  verify_migration              deps + lint / test / build   │
-│  run_checks                    internal raw check runner    │
-│  generate_report               truthful report (md / html)  │
-│  create_pull_request           GitHub API (verify-gated)    │
+│  analyze_dependency_usage       clone · AST · peer preflight│
+│  load_migration_requirements    knowledge base + docs       │
+│  calculate_migration_blast_radius  evidence-based risk      │
+│  generate_migration_plan        steps · content-hashed id   │
+│  approve_migration_plan         records the human approval  │
+│  checkout_branch                branch      (approval-gated)│
+│  apply_migration_patch          install / codemod / manual  │
+│                                 / skip / retry (gated)      │
+│  verify_migration               versions + lint/test/build  │
+│  run_checks                     internal raw check runner   │
+│  generate_report                Markdown / HTML, any stage  │
+│  create_pull_request            push + PR (approval+verify) │
+│  get_session_status             recovery: sessions / next   │
 └────────────────────────┬────────────────────────────────────┘
-                         │
-          ┌──────────────┼──────────────┐
-          │              │              │
-   ┌──────▼──────┐ ┌─────▼─────┐ ┌────▼───────────┐
-   │  Local disk  │ │  GitHub   │ │ Package manager│
-   │  (cloned     │ │  REST API │ │ install (npm / │
-   │   repo)      │ │  + git    │ │ yarn / pnpm)   │
-   └─────────────┘ └───────────┘ └────────────────┘
+          ┌──────────────┼───────────────┬──────────────────┐
+   ┌──────▼──────┐ ┌─────▼──────┐ ┌──────▼──────────┐ ┌─────▼─────┐
+   │ session     │ │ GitHub API │ │ package manager │ │ npm       │
+   │ clone + git │ │ + git push │ │ npm/yarn/pnpm   │ │ registry  │
+   └─────────────┘ └────────────┘ └─────────────────┘ └───────────┘
+                                                       (peer preflight,
+                                                        optional/offline)
 ```
 
 ---
@@ -48,14 +48,15 @@ and a local MCP server is the backend. No separate web server is required.
 
 | Layer | Technology | Why |
 |---|---|---|
-| MCP server | TypeScript (Node.js ESM) | Official MCP SDK; Bob can scaffold natively |
-| MCP transport | stdio (local) | Zero latency; no network auth; hackathon-safe |
-| AST analysis | `ts-morph` | Production-grade TS/JS AST without custom parsers; finds imports and concrete API usages |
-| GitHub API | `@octokit/rest` | Official; handles rate limits + PR creation |
-| Shell execution | Node `child_process` | Runs the repo's package-manager install and lint/test/build; git via `execFileSync` (no shell) |
-| Session state | JSON files (`~/.codebase-doctor/sessions/`) | Survives Bob context resets |
-| Knowledge base | JSON arrays (`backend/src/knowledge/`) | Seeded for demo; extensible |
-| Bob skill | `SKILL.md` + supporting `.md` files | Procedural workflow; auto-activates on upgrade intent |
+| MCP server | TypeScript (Node.js ≥ 20, ESM), `@modelcontextprotocol/sdk` | Official SDK; zod schemas validate every tool input |
+| Transport | stdio | Local, no network auth |
+| AST analysis | `ts-morph` | TS/JS/JSX without custom parsers; import bindings, calls, member access, type positions |
+| Versions / peer ranges | `semver` | Exact peer-range checks for the compatibility preflight |
+| GitHub API | `@octokit/rest` | Repository metadata, PR lookup/creation (`GITHUB_API_URL` overridable) |
+| Commands | `child_process` without shells for git; validated tokens for package managers | No injection from docs or repo content |
+| Session state | JSON files, atomically written and HMAC-sealed | Survives Bob context resets; hand edits are detected |
+| Knowledge base | JSON arrays (`backend/src/knowledge/`) | Declarative detect patterns per rule |
+| Bob skill | `SKILL.md` + checklist + severity guide | Procedural workflow; auto-activates on upgrade intent |
 
 ---
 
@@ -63,53 +64,33 @@ and a local MCP server is the backend. No separate web server is required.
 
 ```
 Codebase-Doctor/
-├── README.md
-├── .gitignore
-├── .env.example
-├── package.json                    ← root workspace
-│
-├── frontend/                       ← placeholder (Bob IDE is the UI for MVP)
-│   └── README.md
-│
-├── backend/                        ← MCP server (TypeScript/Node.js ESM)
+├── backend/
 │   ├── src/
-│   │   ├── index.ts                ← MCP server entry + tool registration
-│   │   ├── types.ts                ← shared data models
-│   │   ├── tools/                  ← one file per MCP tool (11 tools)
-│   │   ├── lib/                    ← ast, ecosystem, risk, requirements, packages,
-│   │   │                             transforms, git, github, session, project
-│   │   └── knowledge/              ← JSON breaking-change knowledge base
-│   └── test/
-│       ├── unit/                   ← Vitest unit tests
-│       ├── integration/            ← full pipeline on a disposable git copy
-│       └── fixtures/               ← minimal React 17 app for tests
-│
-├── .bob/
-│   ├── skills/migration-doctor/    ← custom Bob skill (SKILL.md + 2 supporting files)
-│   ├── rules/AGENTS.md             ← general Bob rules
-│   ├── rules-agent/AGENTS.md       ← agent-mode specific rules
-│   └── mcp.example.json            ← MCP config template (copy to gitignored .bob/mcp.json)
-│
-├── docs/
-│   ├── PROBLEM_SOLUTION.md         ← problem/solution write-up
-│   ├── BOB_USAGE.md                ← Bob feature map
-│   ├── ARCHITECTURE.md             ← this file
-│   ├── DEMO_SCRIPT.md              ← 7-minute demo walkthrough
-│   ├── BOB_USAGE_LOG.md            ← development session log
-│   ├── IMPLEMENTATION_PLAN.md      ← original approved design plan (historical)
-│   ├── target-repo.md
-│   └── bob-evidence/
-│       ├── fayaz/
-│       │   ├── BOB_USAGE_LOG.md    ← timestamped session record
-│       │   └── 0N-*.png            ← Bob session screenshots (real captures)
-│       └── uzair/
-│           ├── BOB_USAGE_LOG.md    ← teammate session record (empty until sessions are logged)
-│           └── README.md
-│
-└── submission/
-    ├── problem-solution.md         ← hackathon problem/solution statement
-    ├── bob-statement.md            ← detailed Bob feature usage statement
-    └── video-notes.md              ← demo video guide + recording checklist
+│   │   ├── index.ts                ← stdio entry point
+│   │   ├── server.ts               ← createServer(): registration of the 12 tools
+│   │   ├── types.ts                ← shared data model
+│   │   ├── tools/                  ← one file per tool
+│   │   ├── lib/
+│   │   │   ├── ast.ts              ← family-wide usage scan (pre-filtered, fresh Project per call)
+│   │   │   ├── compat.ts           ← peer-dependency preflight
+│   │   │   ├── ecosystem.ts        ← package families, synced/type packages, curated companions
+│   │   │   ├── git.ts / github.ts  ← clone, branch, commit, push; Octokit wrapper + error mapping
+│   │   │   ├── integrity.ts        ← HMAC seals for session files
+│   │   │   ├── output.ts           ← ANSI stripping, path hiding, failed-test parsing
+│   │   │   ├── packages.ts         ← package.json edits, installs, installed-version checks
+│   │   │   ├── report-html.ts      ← the migration report page
+│   │   │   ├── requirements.ts     ← knowledge base + docs validation/augmentation
+│   │   │   ├── risk.ts             ← evidence matching and scoring
+│   │   │   ├── session.ts          ← sealed, atomic state files; approval gate
+│   │   │   ├── transforms.ts       ← React 18 codemods
+│   │   │   └── validation.ts       ← repository sources, package names, versions, branch names
+│   │   └── knowledge/              ← react-17-to-18.json, express-4-to-5.json
+│   ├── scripts/                    ← e2e-demo.mjs (real stdio run), github-sandbox.mjs
+│   └── test/                       ← unit/, integration/, fixtures/
+├── examples/react17-demo-app/      ← realistic React 17 app for end-to-end runs
+├── scripts/screenshots/            ← capture.mjs → features-screen-shots/
+├── .bob/                           ← skill, rules, MCP config template
+└── docs/, submission/
 ```
 
 ---
@@ -117,100 +98,108 @@ Codebase-Doctor/
 ## Data Flow
 
 ```
-User input
-    │
-    ▼
-Bob (migration-doctor skill activates)
-    │
-    ├─► analyze_dependency_usage
-    │       git clone → AST scan of the package family (react + react-dom …)
-    │       → import sites + concrete API usages (file/line/args)
-    │       saved: session.json + analysis.json
-    │
-    ├─► load_migration_requirements
-    │       canonical knowledge base (react-bc-*) validated/augmented by docs text
-    │       → only rules with evidence in this repo (+ manual docs-* items)
-    │       saved: requirements.json
-    │
-    ├─► calculate_migration_blast_radius
-    │       evidence-based scoring (severity-guide.md) → BlastRadiusReport
-    │       saved: analysis.json (updated)
-    │
-    ├─► generate_migration_plan  [Plan mode]
-    │       deterministic step IDs, content-hashed planId → markdown for approval
-    │       saved: migration-plan.json
-    │
-    ├─► approve_migration_plan   [after the user types "approved"]
-    │       saved: migration-plan.json → approval { planId, approvedAt }
-    │
-    ├─► checkout_branch          [refuses without approval]
-    │       git checkout -b codebase-doctor/<dep>-<version>-upgrade; base commit recorded
-    │
-    ├─► apply_migration_patch × N  [refuses without approval / off-branch]
-    │       config: package.json (family) → install → lockfile → installed-version check
-    │       codemod: transform → commit → residual re-scan
-    │       manual/test: no edits → manual_required; later markManualComplete + note
-    │
-    ├─► verify_migration  [loop ≤ 3×]
-    │       installed versions + lint + test + build → ChecksResult (with HEAD sha)
-    │       saved: checks-result.json
-    │
-    ├─► generate_report
-    │       markdown (PR body) + HTML (Bob artifact) from the same persisted data
-    │
-    └─► create_pull_request  [refuses unless approved + latest verify PASSED on HEAD]
-            git push → GitHub API → PR URL (existing PR reused on retry)
+analyze_dependency_usage   validate url/dependency/version → clone into the session directory
+                           (GitHub: shallow clone, token via env header; local path: cloned, untouched)
+                           → package manager + scripts → AST scan of the family → peer preflight
+                           saved: session.json, analysis.json   (rolled back if anything fails)
+
+load_migration_requirements  knowledge base (canonical IDs) ± docs text (confirm / docs-N manual rules)
+                           → only rules with evidence in this repo      saved: requirements.json
+
+calculate_migration_blast_radius  evidence → per-file score → tiers   saved: analysis.json
+
+generate_migration_plan    [peer-compat manual step] → dependencies step (family + types + curated
+                           companions) → one step per rule (high severity first) → tests step
+                           planId = hash(step ids, titles, files, types, package edits)
+                           saved: migration-plan.json
+
+approve_migration_plan     only with the user's literal "approved" and the current planId
+
+checkout_branch            codebase-doctor/<dep>-<version>-upgrade; base commit recorded
+
+apply_migration_patch      config:   edit package.json → install (lockfile) → installed-version check → commit
+                           codemod:  transform → commit → residual re-scan
+                           manual/test: no edits → manual_required → later markManualComplete + note (commit)
+                           skip:     note required, never the dependency step
+                           failure:  roll back the step's files, status "failed", output kept, retryable
+
+verify_migration           installed versions + lint + test + build (the repo's own scripts, CI=true)
+                           records HEAD, uncommitted files, failed tests    saved: checks-result.json,
+                                                                                   checks-history.json
+
+generate_report            ReportData from persisted state → Markdown (PR body) or HTML (artifact)
+
+create_pull_request        gates: approval · no pending/failed step · latest verify passed on HEAD ·
+                           clean tree · GitHub remote → push (never forced) → open PR (or reuse the open one)
 ```
 
 ---
 
 ## Session State
 
-All state persists at `$CODEBASE_DOCTOR_HOME/sessions/<uuid>/` (default `~/.codebase-doctor`);
-clones live in `$CODEBASE_DOCTOR_HOME/repos/<owner>/<repo>/<uuid>/`.
+`$CODEBASE_DOCTOR_HOME` (default `~/.codebase-doctor`):
 
 ```
-<uuid>/
-├── session.json          ← repo info, upgrade info, phase, base commit, PR
-├── analysis.json         ← AST usages (imports + API evidence) + blast radius
+integrity.key                        ← per-installation HMAC key (created on first use, mode 0600)
+sessions/<uuid>/
+├── session.json          ← repo (source, owner/name, clone path, default branch), upgrade, phase,
+│                            migration branch, base commit, pull request
+├── analysis.json         ← usages (imports + API evidence), blast radius, peer compatibility, warnings
 ├── requirements.json     ← applicable breaking changes (+ docs validation)
-├── migration-plan.json   ← steps with status/outcome + approval record
-└── checks-result.json    ← latest dependency/lint/test/build result + HEAD sha
+├── migration-plan.json   ← steps with status/outcome (attempts, residuals, error output) + approval
+├── checks-result.json    ← latest verification (HEAD sha, uncommitted files)
+└── checks-history.json   ← every verification run, oldest first
+repos/<owner|local>/<repo>/<uuid>/   ← the session's clone
 ```
+
+Every file carries an HMAC `_seal` and is written via temp file + rename. A missing or mismatched seal raises an
+integrity error: gates refuse to proceed, and the report shows the data as untrusted instead of using it.
+`verify_migration` can always replace an untrusted `checks-result.json` with a genuine one.
 
 ## Restart Behaviour
 
-State on disk means Bob context resets are safe. Not every tool is idempotent,
-so this is the exact behaviour on a repeated call:
-
 | Tool | Re-call behaviour |
 |---|---|
-| `analyze_dependency_usage` | **Creates a new session** (new clone). Resume an existing one by reusing its sessionId. |
+| `analyze_dependency_usage` | **Creates a new session** (new clone). Resume an existing one with its sessionId (`get_session_status` lists them). |
 | `load_migration_requirements` | Recomputes; identical result is a no-op. Refuses to change requirements once the plan is approved. |
 | `calculate_migration_blast_radius` | Deterministic; evidence is recomputed from scratch (no duplicates). |
-| `generate_migration_plan` | Unchanged inputs → returns the existing plan (same step IDs, statuses, approval). Changed inputs → rebuilt only if no step has run; a different plan needs re-approval. |
+| `generate_migration_plan` | Unchanged inputs → the existing plan (same IDs, statuses, approval). Changed inputs → rebuilt only if no step has run; a different plan needs re-approval. |
 | `approve_migration_plan` | Idempotent; returns the original approval. |
 | `checkout_branch` | Switches to the existing branch; keeps the original base commit. |
-| `apply_migration_patch` | Processed steps are skipped; a failed dependency install restores package.json/lockfile and leaves the step pending. |
-| `verify_migration` / `run_checks` | Re-runs the checks (iteration counter increments). |
-| `generate_report` | Read-only. |
-| `create_pull_request` | Returns the recorded PR, or an already-open PR for the branch, instead of opening a duplicate. |
+| `apply_migration_patch` | Processed steps are skipped; `failed` / `skipped` steps can be run again. |
+| `verify_migration` / `run_checks` | Re-runs the checks (iteration increments; history kept). |
+| `generate_report`, `get_session_status` | Read-only. |
+| `create_pull_request` | Returns the recorded PR, or the already-open PR for the branch, instead of opening a duplicate; re-pushing the same commit is a no-op. |
 
 ---
 
 ## Risk Scoring
 
-Risk scores (0–100) are calculated by [`backend/src/lib/risk.ts`](../backend/src/lib/risk.ts)
-using the rules documented in [`.bob/skills/migration-doctor/severity-guide.md`](../.bob/skills/migration-doctor/severity-guide.md).
+Scores (0–100) come from [`backend/src/lib/risk.ts`](../backend/src/lib/risk.ts), using the rules documented in
+[`.bob/skills/migration-doctor/severity-guide.md`](../.bob/skills/migration-doctor/severity-guide.md).
 
 | Score range | Tier | Action |
 |---|---|---|
-| 70–100 | High | Spawn dedicated `explore` subagent before patching |
+| 70–100 | High | Spawn a dedicated `explore` subagent before patching |
 | 40–69 | Medium | Apply directly with review |
 | 1–39 | Low | Apply directly |
 | 0 | None | Skip |
 
-Scores are computed only from concrete API evidence: severity points per
-breaking change found in the file (high 40 / medium 20 / low 10), plus +30 for a
-non-test file that bootstraps the app root and +20 for a test file — see the
-severity guide for the exact reference scores.
+Each distinct breaking change evidenced in a file adds its severity points: high 40, medium 20, low 10. On top of
+that, +30 for a non-test file that bootstraps the app root, and +20 for a test file. Detect patterns can be limited
+to TypeScript files or test files, and `api: "*"` matches any import of a module.
+
+---
+
+## Security Model
+
+| Concern | Handling |
+|---|---|
+| Changes without consent | Approval is enforced in `session.ts`, and the plan ID is re-derived from the steps on every gate check |
+| Faked results / statuses | HMAC-sealed state files; tampered data is rejected or labelled untrusted |
+| Credentials | `GITHUB_TOKEN` is passed to git as a per-process env header (never argv or `.git/config`); redacted from errors; Octokit logging off |
+| Command injection | git via argument arrays; package managers via allowlisted tokens (`cmd.exe /d /s /c` on Windows instead of `shell: true`) |
+| Path traversal | Session IDs must be UUIDs; owner/repo names validated; clones live under the state directory |
+| Untrusted repo/docs content | Data only: escaped in HTML, cell-escaped in Markdown (incl. @-mentions), never executed or followed as instructions |
+| Running repository scripts | Verification runs the repo's own install/lint/test/build scripts — only use it on repositories you trust |
+| Local paths in outputs | Clone paths are replaced with `<repo>` in check and install output |

@@ -1,6 +1,6 @@
 {
   "name": "codebase-doctor",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "AI-Assisted Dependency Upgrade Doctor powered by IBM Bob 2.0",
   "license": "MIT",
@@ -13,9 +13,15 @@
     "test": "npm run test --workspace=backend",
     "test:integration": "npm run test:integration --workspace=backend",
     "typecheck": "npm run typecheck --workspace=backend",
-    "lint": "npm run lint --workspace=backend"
+    "lint": "npm run lint --workspace=backend",
+    "e2e": "npm run build && node backend/scripts/e2e-demo.mjs --out .demo-run --sandbox-pr",
+    "screenshots": "node scripts/screenshots/capture.mjs"
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0",
+    "roughjs": "^4.6.6"
   }
 }

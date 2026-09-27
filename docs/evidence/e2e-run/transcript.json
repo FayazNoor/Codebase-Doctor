@@ -1,0 +1,911 @@
+{
+  "summary": {
+    "generatedAt": "2026-09-26T10:27:45.115Z",
+    "node": "v24.15.0",
+    "sandboxPr": true,
+    "docsSupplied": true,
+    "mainSessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+    "failedSessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4",
+    "tamperedSessionId": "2c05c409-96ef-4adf-be86-40bfcabd7635",
+    "mainWorkflowSeconds": 400,
+    "toolCalls": 68,
+    "toolErrors": 12,
+    "humanActions": 12
+  },
+  "transcript": [
+    {
+      "kind": "tool",
+      "tool": "analyze_dependency_usage",
+      "args": {
+        "url": "<workspace>\\.demo-run\\work\\pantry-list",
+        "dependency": "react",
+        "targetVersion": "18.3.1"
+      },
+      "isError": false,
+      "ms": 4556,
+      "label": "analyse the React 17 demo app",
+      "text": "✅ Session created: 3fd51510-5cd8-41f8-8271-285c542bb72f\n📦 react ^17.0.2 → 18.3.1 · branch codebase-doctor/react-18.3.1-upgrade\n📁 codebase-doctor-sandbox/pantry-list @ main (javascript, npm — package-lock.json)\n🔍 13 source files scanned; react + react-dom used in 11 files (16 imports, 19 API usages)\n🧪 Tests: npm run test (jest) · build: npm run build · lint: npm run lint\n🧩 Peer conflicts: @testing-library/react@12.1.5 (peer react <18.0.0)\n\nNext step: call load_migration_requirements with sessionId 3fd51510-5cd8-41f8-8271-285c542bb72f"
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_report",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "format": "html"
+      },
+      "isError": false,
+      "ms": 664,
+      "label": "report snapshot: 01-analysed",
+      "text": "<HTML report saved to reports/01-analysed.html — 51645 characters>"
+    },
+    {
+      "kind": "tool",
+      "tool": "load_migration_requirements",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "docsText": "<18520 characters of migration-guide text>"
+      },
+      "isError": false,
+      "ms": 81,
+      "label": "rules validated by the React 18 upgrade guide",
+      "text": "📋 Migration requirements loaded for react ^17.0.2 → 18.3.1\nRules: react-17-to-18.json + supplied docs (validation/augmentation)\n\nFound 8 applicable breaking changes:\n  [HIGH] react-bc-1: ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render() (automatable) [in docs]\n  [HIGH] react-bc-2: ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() (automatable) [in docs]\n  [MEDIUM] react-bc-3: act() from react-dom/test-utils is deprecated — import act from 'react' (available from React 18.3) (automatable) [not in docs]\n  [MEDIUM] react-bc-4: Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders (manual) [in docs]\n  [LOW] react-bc-6: Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects (manual) [in docs]\n  [LOW] react-bc-7: ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching (manual) [not in docs]\n  [MEDIUM] react-bc-8: ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot() (manual) [in docs]\n  [LOW] react-bc-12: Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18 (manual) [in docs]\n\n⚡ Automatable: 3 | 🔧 Manual: 5\n\nNext step: call calculate_migration_blast_radius"
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_report",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "format": "html"
+      },
+      "isError": false,
+      "ms": 518,
+      "label": "report snapshot: 02-rules-loaded",
+      "text": "<HTML report saved to reports/02-rules-loaded.html — 57090 characters>"
+    },
+    {
+      "kind": "tool",
+      "tool": "calculate_migration_blast_radius",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f"
+      },
+      "isError": false,
+      "ms": 61,
+      "label": null,
+      "text": "🎯 Blast Radius: 🟡 Moderate blast radius\n\nTotal files using dependency: 11\nAffected files:               9\nRisk distribution:            🔴 High: 4  🟡 Medium: 0  🟢 Low: 5\n\nTop affected files:\n  [90/100] src/legacy/toast.jsx  — react-bc-1 +40, react-bc-8 +20, root bootstrap +30\n  [90/100] src/legacy/toast.test.jsx  — react-bc-1 +40, react-bc-3 +20, react-bc-12 +10, test harness +20\n  [80/100] src/index.jsx  — react-bc-1 +40, react-bc-6 +10, root bootstrap +30\n  [70/100] src/ssr-entry.jsx  — react-bc-2 +40, root bootstrap +30\n  [20/100] src/App.jsx  — react-bc-4 +20\n  ... and 4 more\n\nNext step: call generate_migration_plan (then switch to Plan mode to present it)"
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_migration_plan",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f"
+      },
+      "isError": false,
+      "ms": 85,
+      "label": null,
+      "text": "## Migration Plan: react ^17.0.2 → 18.3.1\n\n**Plan ID:** `b3b654d66018` · **Effort:** HIGH · **Steps:** 10 (4 automated, 6 manual/review)\n**Approval:** ⏳ NOT approved — no code will be changed until it is\n\nUpgrade react from ^17.0.2 to 18.3.1 across 9 affected files. 10 migration steps: 4 automatable, 6 requiring manual changes or review.\n\n| # | Step | Type | Automated | Files | Status |\n|---|---|---|---|---|---|\n| 1 | Update react, react-dom, @testing-library/react to 18.3.1 and install | config | yes | 2 | ⏳ pending |\n| 2 | ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 m… | codemod | yes | 3 | ⏳ pending |\n| 3 | ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() | codemod | yes | 1 | ⏳ pending |\n| 4 | act() from react-dom/test-utils is deprecated — import act from 'react' (available from… | codemod | yes | 1 | ⏳ pending |\n| 5 | Automatic batching: setState calls in timeouts/promises/native handlers are now batched… | manual | no | 4 | ⏳ pending |\n| 6 | ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on th… | manual | no | 1 | ⏳ pending |\n| 7 | Strict Mode now double-invokes effects (mount → unmount → mount) in development to surf… | manual | no | 1 | ⏳ pending |\n| 8 | ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching | manual | no | 1 | ⏳ pending |\n| 9 | Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = tr… | manual | no | 1 | ⏳ pending |\n| 10 | Update and verify tests | test | no | 3 | ⏳ pending |\n\n### Step details\n\n**1. `step-1-dependencies`** — `react` ^17.0.2 → ^18.3.1 (dependencies); `react-dom` ^17.0.2 → ^18.3.1 (dependencies — kept in lock-step); `@testing-library/react` ^12.1.5 → ^14.3.1 (devDependencies — peer range must accept the target). Then run `npm install` (updates package-lock.json) and verify the installed versions. Unrelated dependencies are not changed.\n  Files: package.json, package-lock.json\n\n**2. `step-2-react-bc-1`** — ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render()\n  Files: src/index.jsx, src/legacy/toast.jsx, src/legacy/toast.test.jsx\n\n**3. `step-3-react-bc-2`** — ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot()\n  Files: src/ssr-entry.jsx\n\n**4. `step-4-react-bc-3`** — act() from react-dom/test-utils is deprecated — import act from 'react' (available from React 18.3)\n  Files: src/legacy/toast.test.jsx\n\n**5. `step-5-react-bc-4`** — Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders\n  Files: src/App.jsx, src/components/AddItemForm.jsx, src/components/ItemList.jsx, src/components/SyncStatus.jsx\n  ⚠️ Manual action required: Review any tests that assert on intermediate render states inside setTimeout, Promise.then, or native event handlers. Wrap those assertions in `act()` or use `flushSync` from 'react-dom' to opt out of automatic batching where needed.\n\n**6. `step-6-react-bc-8`** — ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot()\n  Files: src/legacy/toast.jsx\n  ⚠️ Manual action required: Keep the root returned by createRoot(container) and call root.unmount() instead of unmountComponentAtNode(container). In tests, unmount the root the test created (React Testing Library unmounts automatically).\n\n**7. `step-7-react-bc-6`** — Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects\n  Files: src/index.jsx\n  ⚠️ Manual action required: Audit useEffect, useLayoutEffect, and class lifecycle methods for non-idempotent side effects (network requests, analytics calls, subscriptions). Ensure cleanup functions are implemented so double-invocation does not cause observable problems in development.\n\n**8. `step-8-react-bc-7`** — ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching\n  Files: src/legacy/store.js\n  ⚠️ Manual action required: With React 18's automatic batching, explicit calls to unstable_batchedUpdates are no longer needed in most cases. Remove them and verify behaviour. If you need to force synchronous rendering, use flushSync from 'react-dom' instead.\n\n**9. `step-9-react-bc-12`** — Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18\n  Files: src/legacy/toast.test.jsx\n  ⚠️ Manual action required: In the test setup file (e.g. setupTests.js / jest.setup.js), set `globalThis.IS_REACT_ACT_ENVIRONMENT = true;` so React 18 knows it runs in an act-aware test environment. React Testing Library ≥ 13 sets this automatically for tests that use it.\n\n**10. `step-10-tests`** — Update any test utilities that changed in the new version, then confirm the full suite passes with verify_migration. This step makes no automated source changes.\n  Files: src/App.test.jsx, src/components/SyncStatus.test.jsx, src/legacy/toast.test.jsx\n\n---\n**Review the plan above and type \"approved\" to begin implementation.**\nOr describe any changes you'd like to make before proceeding.\n(After the user approves: call approve_migration_plan with planId `b3b654d66018` and confirmation \"approved\".)"
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_report",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "format": "html"
+      },
+      "isError": false,
+      "ms": 452,
+      "label": "report snapshot: 03-awaiting-approval",
+      "text": "<HTML report saved to reports/03-awaiting-approval.html — 73772 characters>"
+    },
+    {
+      "kind": "tool",
+      "tool": "checkout_branch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f"
+      },
+      "isError": true,
+      "ms": 42,
+      "label": "blocked: plan not approved",
+      "text": "Migration plan b3b654d66018 has not been approved. Present the plan to the user; after they type \"approved\", call approve_migration_plan with { sessionId, planId: \"b3b654d66018\", confirmation: \"approved\" }."
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-1-dependencies"
+      },
+      "isError": true,
+      "ms": 21,
+      "label": "blocked: plan not approved",
+      "text": "Migration plan b3b654d66018 has not been approved. Present the plan to the user; after they type \"approved\", call approve_migration_plan with { sessionId, planId: \"b3b654d66018\", confirmation: \"approved\" }."
+    },
+    {
+      "kind": "human",
+      "actor": "demo script (in place of Bob / the user)",
+      "action": "replied to the plan: \"looks fine, but can you skip the tests?\"",
+      "detail": "Not an approval — the tool must refuse it."
+    },
+    {
+      "kind": "tool",
+      "tool": "approve_migration_plan",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "planId": "b3b654d66018",
+        "confirmation": "looks fine, but can you skip the tests?"
+      },
+      "isError": true,
+      "ms": 17,
+      "label": "refused: not an approval",
+      "text": "Approval not recorded: confirmation must be the user's reply \"approved\" (got \"looks fine, but can you skip the tests?\"). If the user asked for changes, revise the plan instead."
+    },
+    {
+      "kind": "human",
+      "actor": "demo script (in place of Bob / the user)",
+      "action": "replied to the plan: \"approved\"",
+      "detail": "Explicit human approval of the plan shown above."
+    },
+    {
+      "kind": "tool",
+      "tool": "approve_migration_plan",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "planId": "b3b654d66018",
+        "confirmation": "approved"
+      },
+      "isError": false,
+      "ms": 49,
+      "label": null,
+      "text": "✅ Plan b3b654d66018 approved at 2026-09-26T10:19:06.095Z (10 steps).\nNext step: call checkout_branch, then apply_migration_patch for each step ID in order."
+    },
+    {
+      "kind": "tool",
+      "tool": "checkout_branch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f"
+      },
+      "isError": false,
+      "ms": 1054,
+      "label": null,
+      "text": "✅ Created and switched to branch: codebase-doctor/react-18.3.1-upgrade\nRepository: <workspace>\\.demo-run\\home\\repos\\codebase-doctor-sandbox\\pantry-list\\3fd51510-5cd8-41f8-8271-285c542bb72f\nNext step: call apply_migration_patch with each stepId from the migration plan"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-1-dependencies"
+      },
+      "isError": false,
+      "ms": 230302,
+      "label": "real npm install",
+      "text": "✅ Step 1: Update react, react-dom, @testing-library/react to 18.3.1 and install\nStatus: applied | Type: config\nRan `npm install --no-audit --no-fund`; installed react@18.3.1, react-dom@18.3.1.\n\n package-lock.json | 83 ++++++++++++++++++++++++-------------------------------\n package.json      |  6 ++--\n 2 files changed, 39 insertions(+), 50 deletions(-)\n\nNext pending step: step-2-react-bc-1"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-2-react-bc-1"
+      },
+      "isError": false,
+      "ms": 1979,
+      "label": "automated transform",
+      "text": "✅ Step 2: ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render()\nStatus: applied | Type: codemod\nTransformed 3 file(s); no remaining usages of the old API.\n\n src/index.jsx             | 7 +++----\n src/legacy/toast.jsx      | 3 ++-\n src/legacy/toast.test.jsx | 4 ++--\n 3 files changed, 7 insertions(+), 7 deletions(-)\n\nNext pending step: step-3-react-bc-2"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-3-react-bc-2"
+      },
+      "isError": false,
+      "ms": 1707,
+      "label": "automated transform",
+      "text": "✅ Step 3: ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot()\nStatus: applied | Type: codemod\nTransformed 1 file(s); no remaining usages of the old API.\n\n src/ssr-entry.jsx | 4 ++--\n 1 file changed, 2 insertions(+), 2 deletions(-)\n\nNext pending step: step-4-react-bc-3"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-4-react-bc-3"
+      },
+      "isError": false,
+      "ms": 1952,
+      "label": "automated transform",
+      "text": "✅ Step 4: act() from react-dom/test-utils is deprecated — import act from 'react' (available from React 18.3)\nStatus: applied | Type: codemod\nTransformed 1 file(s); no remaining usages of the old API.\n\n src/legacy/toast.test.jsx | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n\nNext pending step: step-5-react-bc-4"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-5-react-bc-4"
+      },
+      "isError": false,
+      "ms": 295,
+      "label": "manual / review step",
+      "text": "⚠️ Step 5: Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders\nStatus: manual_required | Type: manual\nNo automated change exists for this rule. Review any tests that assert on intermediate render states inside setTimeout, Promise.then, or native event handlers. Wrap those assertions in `act()` or use `flushSync` from 'react-dom' to opt out of automatic batching where needed.\n\n(no commit — no source changes)\n\nNext pending step: step-6-react-bc-8"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-7-react-bc-6"
+      },
+      "isError": false,
+      "ms": 317,
+      "label": "manual / review step",
+      "text": "⚠️ Step 7: Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects\nStatus: manual_required | Type: manual\nNo automated change exists for this rule. Audit useEffect, useLayoutEffect, and class lifecycle methods for non-idempotent side effects (network requests, analytics calls, subscriptions). Ensure cleanup functions are implemented so double-invocation does not cause observable problems in development.\n\n(no commit — no source changes)\n\nNext pending step: step-6-react-bc-8"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-8-react-bc-7"
+      },
+      "isError": false,
+      "ms": 277,
+      "label": "manual / review step",
+      "text": "⚠️ Step 8: ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching\nStatus: manual_required | Type: manual\nNo automated change exists for this rule. With React 18's automatic batching, explicit calls to unstable_batchedUpdates are no longer needed in most cases. Remove them and verify behaviour. If you need to force synchronous rendering, use flushSync from 'react-dom' instead.\n\n(no commit — no source changes)\n\nNext pending step: step-6-react-bc-8"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-6-react-bc-8"
+      },
+      "isError": false,
+      "ms": 225,
+      "label": "manual / review step",
+      "text": "⚠️ Step 6: ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot()\nStatus: manual_required | Type: manual\nNo automated change exists for this rule. Keep the root returned by createRoot(container) and call root.unmount() instead of unmountComponentAtNode(container). In tests, unmount the root the test created (React Testing Library unmounts automatically).\n\n(no commit — no source changes)\n\nNext pending step: step-9-react-bc-12"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-9-react-bc-12"
+      },
+      "isError": false,
+      "ms": 251,
+      "label": "manual / review step",
+      "text": "⚠️ Step 9: Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18\nStatus: manual_required | Type: manual\nNo automated change exists for this rule. In the test setup file (e.g. setupTests.js / jest.setup.js), set `globalThis.IS_REACT_ACT_ENVIRONMENT = true;` so React 18 knows it runs in an act-aware test environment. React Testing Library ≥ 13 sets this automatically for tests that use it.\n\n(no commit — no source changes)\n\nNext pending step: step-10-tests"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-10-tests"
+      },
+      "isError": false,
+      "ms": 240,
+      "label": "manual / review step",
+      "text": "⚠️ Step 10: Update and verify tests\nStatus: manual_required | Type: test\nNo automated test changes are made. Update tests if needed, run verify_migration, then record with markManualComplete.\n\n(no commit — no source changes)\n\nAll steps have run — next: verify_migration."
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-2-react-bc-1"
+      },
+      "isError": false,
+      "ms": 214,
+      "label": "re-run is a no-op",
+      "text": "ℹ️ Step 'ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render()' was already processed — status: applied. Skipping.\nTransformed 3 file(s); no remaining usages of the old API."
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_report",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "format": "html"
+      },
+      "isError": false,
+      "ms": 2376,
+      "label": "report snapshot: 04-manual-work-open",
+      "text": "<HTML report saved to reports/04-manual-work-open.html — 85694 characters>"
+    },
+    {
+      "kind": "tool",
+      "tool": "verify_migration",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f"
+      },
+      "isError": false,
+      "ms": 72581,
+      "label": "real lint/test/build — expected to fail",
+      "text": "❌ Verification FAILED (iteration 1, commit f8756bf)\n\nDeps:  ✅ PASS react@18.3.1, react-dom@18.3.1\nLint:  ❌ FAIL (npm run lint)\nTest:  ❌ FAIL (npm run test) — 1 failed\nBuild: ✅ PASS (npm run build)\n\n**Failure diagnosis for fix loop:**\nLINT FAILURES:\n> pantry-list@1.0.0 lint\n> eslint src\n<repo>\\src\\legacy\\toast.jsx\n  20:5  error  ReactDOM.unmountComponentAtNode is deprecated since React 18.0.0, use root.unmount instead, see https://reactjs.org/link/switch-to-createroot  react/no-deprecated\n✖ 1 problem (1 error, 0 warnings)\n\nTEST FAILURES:\nTests: 1 failed, 3 passed, 4 total\nFailed tests: shows the sync time once the save resolves\n\nSuggested next action: spawn a general subagent with fork_context:true to propose fixes for the failures above, then call verify_migration again."
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_report",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "format": "html"
+      },
+      "isError": false,
+      "ms": 2120,
+      "label": "report snapshot: 05-verification-failed",
+      "text": "<HTML report saved to reports/05-verification-failed.html — 91953 characters>"
+    },
+    {
+      "kind": "tool",
+      "tool": "create_pull_request",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f"
+      },
+      "isError": true,
+      "ms": 15,
+      "label": "blocked: verification failed",
+      "text": "Latest verification (iteration 1) FAILED — no PR opened. Fix the failures, then call verify_migration again.\nLINT FAILURES:\n> pantry-list@1.0.0 lint\n> eslint src\n<repo>\\src\\legacy\\toast.jsx\n  20:5  error  ReactDOM.unmountComponentAtNode is deprecated since React 18.0.0, use root.unmount instead, see https://reactjs.org/link/switch-to-createroot  react/no-deprecated\n✖ 1 problem (1 error, 0 warnings)\n\nTEST F"
+    },
+    {
+      "kind": "human",
+      "actor": "demo script (in place of Bob / the user)",
+      "action": "react-bc-8: kept the root from createRoot and call root.unmount()",
+      "detail": "src/legacy/toast.jsx"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-6-react-bc-8",
+        "markManualComplete": true,
+        "note": "toast.jsx keeps the root returned by createRoot and calls root.unmount() instead of unmountComponentAtNode"
+      },
+      "isError": false,
+      "ms": 3657,
+      "label": null,
+      "text": "✍️ Step 6: ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot()\nStatus: completed_manual | Type: manual\nCompleted manually: toast.jsx keeps the root returned by createRoot and calls root.unmount() instead of unmountComponentAtNode\n\n src/legacy/toast.jsx | 6 +++---\n 1 file changed, 3 insertions(+), 3 deletions(-)\n\nAll steps have run — next: verify_migration."
+    },
+    {
+      "kind": "human",
+      "actor": "demo script (in place of Bob / the user)",
+      "action": "react-bc-4: the SyncStatus test asserted on an intermediate render that React 18 batches away",
+      "detail": "src/components/SyncStatus.test.jsx"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-5-react-bc-4",
+        "markManualComplete": true,
+        "note": "Audited async setState: only SyncStatus updates state in a promise callback; its test now expects the single batched render"
+      },
+      "isError": false,
+      "ms": 1779,
+      "label": null,
+      "text": "✍️ Step 5: Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders\nStatus: completed_manual | Type: manual\nCompleted manually: Audited async setState: only SyncStatus updates state in a promise callback; its test now expects the single batched render\n\n src/components/SyncStatus.test.jsx | 3 +--\n 1 file changed, 1 insertion(+), 2 deletions(-)\n\nAll steps have run — next: verify_migration."
+    },
+    {
+      "kind": "human",
+      "actor": "demo script (in place of Bob / the user)",
+      "action": "react-bc-12: configured the act environment for React 18",
+      "detail": "jest.setup.js + package.json jest.setupFiles"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-9-react-bc-12",
+        "markManualComplete": true,
+        "note": "Added jest.setup.js setting globalThis.IS_REACT_ACT_ENVIRONMENT = true (jest.setupFiles)"
+      },
+      "isError": false,
+      "ms": 1769,
+      "label": null,
+      "text": "✍️ Step 9: Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18\nStatus: completed_manual | Type: manual\nCompleted manually: Added jest.setup.js setting globalThis.IS_REACT_ACT_ENVIRONMENT = true (jest.setupFiles)\n\n jest.setup.js | 2 ++\n package.json  | 5 ++++-\n 2 files changed, 6 insertions(+), 1 deletion(-)\n\nAll steps have run — next: verify_migration."
+    },
+    {
+      "kind": "human",
+      "actor": "demo script (in place of Bob / the user)",
+      "action": "react-bc-7: removed the unstable_batchedUpdates wrapper (React 18 batches automatically)",
+      "detail": "src/legacy/store.js"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-8-react-bc-7",
+        "markManualComplete": true,
+        "note": "Removed unstable_batchedUpdates from store.js; subscribers are notified directly"
+      },
+      "isError": false,
+      "ms": 1648,
+      "label": null,
+      "text": "✍️ Step 8: ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching\nStatus: completed_manual | Type: manual\nCompleted manually: Removed unstable_batchedUpdates from store.js; subscribers are notified directly\n\n src/legacy/store.js | 10 ++--------\n 1 file changed, 2 insertions(+), 8 deletions(-)\n\nAll steps have run — next: verify_migration."
+    },
+    {
+      "kind": "human",
+      "actor": "demo script (in place of Bob / the user)",
+      "action": "react-bc-6: audited effects for Strict Mode double-invocation",
+      "detail": "no code change"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-7-react-bc-6",
+        "markManualComplete": true,
+        "note": "No component uses effects with external side effects; double-invoking is harmless"
+      },
+      "isError": false,
+      "ms": 867,
+      "label": null,
+      "text": "✍️ Step 7: Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects\nStatus: completed_manual | Type: manual\nCompleted manually: No component uses effects with external side effects; double-invoking is harmless\n\n(no commit — no source changes)\n\nAll steps have run — next: verify_migration."
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "stepId": "step-10-tests",
+        "markManualComplete": true,
+        "note": "Test suite updated for React 18 (SyncStatus batching expectation, act environment)"
+      },
+      "isError": false,
+      "ms": 765,
+      "label": null,
+      "text": "✍️ Step 10: Update and verify tests\nStatus: completed_manual | Type: test\nCompleted manually: Test suite updated for React 18 (SyncStatus batching expectation, act environment)\n\n(no commit — no source changes)\n\nAll steps have run — next: verify_migration."
+    },
+    {
+      "kind": "tool",
+      "tool": "verify_migration",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f"
+      },
+      "isError": false,
+      "ms": 53019,
+      "label": "real lint/test/build — after the fixes",
+      "text": "✅ Verification PASSED (iteration 2, commit 55040d8)\n\nDeps:  ✅ PASS react@18.3.1, react-dom@18.3.1\nLint:  ✅ PASS (npm run lint)\nTest:  ✅ PASS (npm run test)\nBuild: ✅ PASS (npm run build)\n\nNext step: call generate_report twice — once with format:\"html\" (render via create_html_artifact) and once with format:\"markdown\" (used as PR body by create_pull_request) — then call create_pull_request"
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_report",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "format": "html"
+      },
+      "isError": false,
+      "ms": 3620,
+      "label": "report snapshot: 06-verified",
+      "text": "<HTML report saved to reports/06-verified.html — 90047 characters>"
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_report",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "format": "markdown"
+      },
+      "isError": false,
+      "ms": 3206,
+      "label": "markdown report (PR body)",
+      "text": "## Migration Report: react ^17.0.2 → 18.3.1\n\nRepository: `codebase-doctor-sandbox/pantry-list` · Branch: `codebase-doctor/react-18.3.1-upgrade` · Plan `b3b654d66018` approved at 2026-09-26T10:19:06.095Z\n\n**Status:** Ready for pull request — Verification passed on HEAD — open the pull request (create_pull_request).\n\n### Verification (measured)\n\n✅ PASSED (iteration 2, 2026-09-26T10:25:25.438Z, commit 55040d8)\n\n| Check | Result | Command |\n|---|---|---|\n| Dependencies installed | PASS | react@18.3.1, react-dom@18.3.1 |\n| Lint | PASS | npm run lint |\n| Test | PASS | npm run test |\n| Build | PASS | npm run build |\n\nVerification history: #1 failed on `f8756bf` → #2 passed on `55040d8`\n\n### Measured\n\n| Metric | Value |\n|---|---|\n| Files using react (package family) | 11 |\n| Files with breaking-change evidence | 9 |\n| Files changed on migration branch | 9 |\n| Steps automatically applied | 4 / 10 |\n| Steps manually fixed / reviewed | 6 |\n| Steps still requiring manual action | 0 |\n| Steps skipped by user | 0 |\n| Steps failed | 0 |\n| Steps not applicable | 0 |\n| Steps not started | 0 |\n| Elapsed session time (wall-clock, session start → this report) | 6 min |\n\n### Estimated (not measured)\n\n| Metric | Value | Basis |\n|---|---|---|\n| Estimated manual effort | ~4.5 h | 9 affected files × 30 min/file (heuristic, not benchmarked) |\n| Estimated time saved | ~4.4 h | estimated manual effort − measured elapsed time |\n\n### Not measured\n\n- Bobcoin consumption — not measured (not exposed to the MCP server)\n- Accuracy — not measured (no ground-truth benchmark)\n\n### Blast Radius\n\n🟡 Moderate blast radius\n\n| Risk tier | Files |\n|---|---|\n| 🔴 High (≥70) | 4 |\n| 🟡 Medium (40–69) | 0 |\n| 🟢 Low (1–39) | 5 |\n\n| Top affected file | Score | Evidence |\n|---|---|---|\n| `src/legacy/toast.jsx` | 90 | react-bc-1 +40, react-bc-8 +20, root bootstrap +30 |\n| `src/legacy/toast.test.jsx` | 90 | react-bc-1 +40, react-bc-3 +20, react-bc-12 +10, test harness +20 |\n| `src/index.jsx` | 80 | react-bc-1 +40, react-bc-6 +10, root bootstrap +30 |\n| `src/ssr-entry.jsx` | 70 | react-bc-2 +40, root bootstrap +30 |\n| `src/App.jsx` | 20 | react-bc-4 +20 |\n| `src/components/AddItemForm.jsx` | 20 | react-bc-4 +20 |\n| `src/components/ItemList.jsx` | 20 | react-bc-4 +20 |\n| `src/components/SyncStatus.jsx` | 20 | react-bc-4 +20 |\n| `src/legacy/store.js` | 10 | react-bc-7 +10 |\n\n### Breaking Changes\n\n| Status | Severity | Breaking change | Files |\n|---|---|---|---|\n| ✅ Automatically fixed | HIGH | `react-bc-1` ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render() | 3 |\n| ✅ Automatically fixed | HIGH | `react-bc-2` ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() | 1 |\n| ✅ Automatically fixed | MEDIUM | `react-bc-3` act() from react-dom/test-utils is deprecated — import act from 'react' (available from React 18.3) | 1 |\n| ✍️ Manually fixed / reviewed | MEDIUM | `react-bc-4` Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders | 4 |\n| ✍️ Manually fixed / reviewed | LOW | `react-bc-6` Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects | 1 |\n| ✍️ Manually fixed / reviewed | LOW | `react-bc-7` ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching | 1 |\n| ✍️ Manually fixed / reviewed | MEDIUM | `react-bc-8` ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot() | 1 |\n| ✍️ Manually fixed / reviewed | LOW | `react-bc-12` Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18 | 1 |\n\n### Peer-dependency compatibility\n\n| Package | Peer range | Resolution |\n|---|---|---|\n| `@​testing-library/react@12.1.5` | react &lt;18.0.0 | upgraded to ^14.3.1 by the dependency step |\n\n### Migration Steps\n\n- [x] Update react, react-dom, @​testing-library/react to 18.3.1 and install (config) — ✅ Automatically fixed · `798ad60`\n  - Ran `npm install --no-audit --no-fund`; installed react@​18.3.1, react-dom@​18.3.1.\n- [x] ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render() (codemod) — ✅ Automatically fixed · `72cea40`\n  - Transformed 3 file(s); no remaining usages of the old API.\n- [x] ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() (codemod) — ✅ Automatically fixed · `148d1eb`\n  - Transformed 1 file(s); no remaining usages of the old API.\n- [x] act() from react-dom/test-utils is deprecated — import act from 'react' (available from React 18.3) (codemod) — ✅ Automatically fixed · `f8756bf`\n  - Transformed 1 file(s); no remaining usages of the old API.\n- [x] Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders (manual) — ✍️ Manually fixed / reviewed · `1138182`\n  - Completed manually: Audited async setState: only SyncStatus updates state in a promise callback; its test now expects the single batched render\n- [x] ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot() (manual) — ✍️ Manually fixed / reviewed · `d9fc42f`\n  - Completed manually: toast.jsx keeps the root returned by createRoot and calls root.unmount() instead of unmountComponentAtNode\n- [x] Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects (manual) — ✍️ Manually fixed / reviewed\n  - Completed manually: No component uses effects with external side effects; double-invoking is harmless\n- [x] ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching (manual) — ✍️ Manually fixed / reviewed · `55040d8`\n  - Completed manually: Removed unstable_batchedUpdates from store.js; subscribers are notified directly\n- [x] Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18 (manual) — ✍️ Manually fixed / reviewed · `1472489`\n  - Completed manually: Added jest.setup.js setting globalThis.IS_REACT_ACT_ENVIRONMENT = true (jest.setupFiles)\n- [x] Update and verify tests (test) — ✍️ Manually fixed / reviewed\n  - Completed manually: Test suite updated for React 18 (SyncStatus batching expectation, act environment)\n\n---\nGenerated by [Codebase Doctor](https://github.com/FayazNoor/Codebase-Doctor) from persisted session data (session `3fd51510-5cd8-41f8-8271-285c542bb72f`)."
+    },
+    {
+      "kind": "tool",
+      "tool": "create_pull_request",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f"
+      },
+      "isError": false,
+      "ms": 4295,
+      "label": "sandbox GitHub (local mock API + bare repo)",
+      "text": "🎉 Pull request opened!\n\nURL: http://127.0.0.1:55781/codebase-doctor-sandbox/pantry-list/pull/1\nBranch: codebase-doctor/react-18.3.1-upgrade → main\n\nNext step: call generate_report (format: html) again so the report artifact shows the PR link"
+    },
+    {
+      "kind": "tool",
+      "tool": "create_pull_request",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f"
+      },
+      "isError": false,
+      "ms": 28,
+      "label": "retry is idempotent",
+      "text": "ℹ️ Pull request already opened for this session: http://127.0.0.1:55781/codebase-doctor-sandbox/pantry-list/pull/1"
+    },
+    {
+      "kind": "tool",
+      "tool": "get_session_status",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f"
+      },
+      "isError": false,
+      "ms": 336,
+      "label": null,
+      "text": "Session 3fd51510-5cd8-41f8-8271-285c542bb72f — codebase-doctor-sandbox/pantry-list\nreact ^17.0.2 → 18.3.1 · phase: pr_open · branch codebase-doctor/react-18.3.1-upgrade\nPlan b3b654d66018: approved 2026-09-26T10:19:06.095Z\n  ✅ step-1-dependencies — applied\n  ✅ step-2-react-bc-1 — applied\n  ✅ step-3-react-bc-2 — applied\n  ✅ step-4-react-bc-3 — applied\n  ✍️ step-5-react-bc-4 — completed_manual\n  ✍️ step-6-react-bc-8 — completed_manual\n  ✍️ step-7-react-bc-6 — completed_manual\n  ✍️ step-8-react-bc-7 — completed_manual\n  ✍️ step-9-react-bc-12 — completed_manual\n  ✍️ step-10-tests — completed_manual\nVerification #2: PASSED on 55040d8\nPR: http://127.0.0.1:55781/codebase-doctor-sandbox/pantry-list/pull/1\n\nNext: done — generate_report (html) to show the final report"
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_report",
+      "args": {
+        "sessionId": "3fd51510-5cd8-41f8-8271-285c542bb72f",
+        "format": "html"
+      },
+      "isError": false,
+      "ms": 2366,
+      "label": "report snapshot: 07-final",
+      "text": "<HTML report saved to reports/07-final.html — 90363 characters>"
+    },
+    {
+      "kind": "human",
+      "actor": "demo script (in place of Bob / the user)",
+      "action": "prepared a variant of the demo app pinned to react-redux@7.2.6",
+      "detail": "peer range accepts React 17 but not 18 (picked from the npm registry)"
+    },
+    {
+      "kind": "tool",
+      "tool": "analyze_dependency_usage",
+      "args": {
+        "url": "<workspace>\\.demo-run\\work\\pantry-list-redux",
+        "dependency": "react",
+        "targetVersion": "18.3.1"
+      },
+      "isError": false,
+      "ms": 4139,
+      "label": "side session: incompatible peer dependency",
+      "text": "✅ Session created: 7bd3ea4f-0270-45ff-ab92-81d86606b3d4\n📦 react ^17.0.2 → 18.3.1 · branch codebase-doctor/react-18.3.1-upgrade\n📁 pantry-list-redux (local) @ main (javascript, npm — package-lock.json)\n🔍 13 source files scanned; react + react-dom used in 11 files (16 imports, 19 API usages)\n🧪 Tests: npm run test (jest) · build: npm run build · lint: npm run lint\n🧩 Peer conflicts: @testing-library/react@12.1.5 (peer react <18.0.0); react-redux@7.2.6 (peer react ^16.8.3 || ^17)\n⚠️ Local repository without a GitHub remote — every step works, but create_pull_request is unavailable.\n\nNext step: call load_migration_requirements with sessionId 7bd3ea4f-0270-45ff-ab92-81d86606b3d4"
+    },
+    {
+      "kind": "tool",
+      "tool": "load_migration_requirements",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4"
+      },
+      "isError": false,
+      "ms": 50,
+      "label": null,
+      "text": "📋 Migration requirements loaded for react ^17.0.2 → 18.3.1\nRules: react-17-to-18.json\n\nFound 8 applicable breaking changes:\n  [HIGH] react-bc-1: ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render() (automatable)\n  [HIGH] react-bc-2: ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() (automatable)\n  [MEDIUM] react-bc-3: act() from react-dom/test-utils is deprecated — import act from 'react' (available from React 18.3) (automatable)\n  [MEDIUM] react-bc-4: Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders (manual)\n  [LOW] react-bc-6: Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects (manual)\n  [LOW] react-bc-7: ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching (manual)\n  [MEDIUM] react-bc-8: ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot() (manual)\n  [LOW] react-bc-12: Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18 (manual)\n\n⚡ Automatable: 3 | 🔧 Manual: 5\n\nNext step: call calculate_migration_blast_radius"
+    },
+    {
+      "kind": "tool",
+      "tool": "calculate_migration_blast_radius",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4"
+      },
+      "isError": false,
+      "ms": 36,
+      "label": null,
+      "text": "🎯 Blast Radius: 🟡 Moderate blast radius\n\nTotal files using dependency: 11\nAffected files:               9\nRisk distribution:            🔴 High: 4  🟡 Medium: 0  🟢 Low: 5\n\nTop affected files:\n  [90/100] src/legacy/toast.jsx  — react-bc-1 +40, react-bc-8 +20, root bootstrap +30\n  [90/100] src/legacy/toast.test.jsx  — react-bc-1 +40, react-bc-3 +20, react-bc-12 +10, test harness +20\n  [80/100] src/index.jsx  — react-bc-1 +40, react-bc-6 +10, root bootstrap +30\n  [70/100] src/ssr-entry.jsx  — react-bc-2 +40, root bootstrap +30\n  [20/100] src/App.jsx  — react-bc-4 +20\n  ... and 4 more\n\nNext step: call generate_migration_plan (then switch to Plan mode to present it)"
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_migration_plan",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4"
+      },
+      "isError": false,
+      "ms": 106,
+      "label": null,
+      "text": "## Migration Plan: react ^17.0.2 → 18.3.1\n\n**Plan ID:** `70abe5689cf4` · **Effort:** HIGH · **Steps:** 11 (4 automated, 7 manual/review)\n**Approval:** ⏳ NOT approved — no code will be changed until it is\n\nUpgrade react from ^17.0.2 to 18.3.1 across 9 affected files. 11 migration steps: 4 automatable, 7 requiring manual changes or review.\n\n| # | Step | Type | Automated | Files | Status |\n|---|---|---|---|---|---|\n| 1 | Resolve peer-dependency conflicts with react 18.3.1 | manual | no | 1 | ⏳ pending |\n| 2 | Update react, react-dom, @testing-library/react to 18.3.1 and install | config | yes | 2 | ⏳ pending |\n| 3 | ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 m… | codemod | yes | 3 | ⏳ pending |\n| 4 | ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() | codemod | yes | 1 | ⏳ pending |\n| 5 | act() from react-dom/test-utils is deprecated — import act from 'react' (available from… | codemod | yes | 1 | ⏳ pending |\n| 6 | Automatic batching: setState calls in timeouts/promises/native handlers are now batched… | manual | no | 4 | ⏳ pending |\n| 7 | ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on th… | manual | no | 1 | ⏳ pending |\n| 8 | Strict Mode now double-invokes effects (mount → unmount → mount) in development to surf… | manual | no | 1 | ⏳ pending |\n| 9 | ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching | manual | no | 1 | ⏳ pending |\n| 10 | Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = tr… | manual | no | 1 | ⏳ pending |\n| 11 | Update and verify tests | test | no | 3 | ⏳ pending |\n\n### Step details\n\n**1. `step-1-peer-compat`** — These packages declare peer ranges that exclude react 18.3.1, so the install in the next step will fail until they are upgraded or replaced: `react-redux@7.2.6` (peer react ^16.8.3 || ^17) → try `^7.2.7`. Edit package.json on the migration branch (do not run install), then record it with markManualComplete.\n  Files: package.json\n\n**2. `step-2-dependencies`** — `react` ^17.0.2 → ^18.3.1 (dependencies); `react-dom` ^17.0.2 → ^18.3.1 (dependencies — kept in lock-step); `@testing-library/react` ^12.1.5 → ^14.3.1 (devDependencies — peer range must accept the target). Then run `npm install` (updates package-lock.json) and verify the installed versions. Unrelated dependencies are not changed.\n  Files: package.json, package-lock.json\n\n**3. `step-3-react-bc-1`** — ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render()\n  Files: src/index.jsx, src/legacy/toast.jsx, src/legacy/toast.test.jsx\n\n**4. `step-4-react-bc-2`** — ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot()\n  Files: src/ssr-entry.jsx\n\n**5. `step-5-react-bc-3`** — act() from react-dom/test-utils is deprecated — import act from 'react' (available from React 18.3)\n  Files: src/legacy/toast.test.jsx\n\n**6. `step-6-react-bc-4`** — Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders\n  Files: src/App.jsx, src/components/AddItemForm.jsx, src/components/ItemList.jsx, src/components/SyncStatus.jsx\n  ⚠️ Manual action required: Review any tests that assert on intermediate render states inside setTimeout, Promise.then, or native event handlers. Wrap those assertions in `act()` or use `flushSync` from 'react-dom' to opt out of automatic batching where needed.\n\n**7. `step-7-react-bc-8`** — ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot()\n  Files: src/legacy/toast.jsx\n  ⚠️ Manual action required: Keep the root returned by createRoot(container) and call root.unmount() instead of unmountComponentAtNode(container). In tests, unmount the root the test created (React Testing Library unmounts automatically).\n\n**8. `step-8-react-bc-6`** — Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects\n  Files: src/index.jsx\n  ⚠️ Manual action required: Audit useEffect, useLayoutEffect, and class lifecycle methods for non-idempotent side effects (network requests, analytics calls, subscriptions). Ensure cleanup functions are implemented so double-invocation does not cause observable problems in development.\n\n**9. `step-9-react-bc-7`** — ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching\n  Files: src/legacy/store.js\n  ⚠️ Manual action required: With React 18's automatic batching, explicit calls to unstable_batchedUpdates are no longer needed in most cases. Remove them and verify behaviour. If you need to force synchronous rendering, use flushSync from 'react-dom' instead.\n\n**10. `step-10-react-bc-12`** — Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18\n  Files: src/legacy/toast.test.jsx\n  ⚠️ Manual action required: In the test setup file (e.g. setupTests.js / jest.setup.js), set `globalThis.IS_REACT_ACT_ENVIRONMENT = true;` so React 18 knows it runs in an act-aware test environment. React Testing Library ≥ 13 sets this automatically for tests that use it.\n\n**11. `step-11-tests`** — Update any test utilities that changed in the new version, then confirm the full suite passes with verify_migration. This step makes no automated source changes.\n  Files: src/App.test.jsx, src/components/SyncStatus.test.jsx, src/legacy/toast.test.jsx\n\n---\n**Review the plan above and type \"approved\" to begin implementation.**\nOr describe any changes you'd like to make before proceeding.\n(After the user approves: call approve_migration_plan with planId `70abe5689cf4` and confirmation \"approved\".)"
+    },
+    {
+      "kind": "human",
+      "actor": "demo script (in place of Bob / the user)",
+      "action": "replied to the plan: \"approved\"",
+      "detail": "side session"
+    },
+    {
+      "kind": "tool",
+      "tool": "approve_migration_plan",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4",
+        "planId": "70abe5689cf4",
+        "confirmation": "approved"
+      },
+      "isError": false,
+      "ms": 80,
+      "label": null,
+      "text": "✅ Plan 70abe5689cf4 approved at 2026-09-26T10:26:11.352Z (11 steps).\nNext step: call checkout_branch, then apply_migration_patch for each step ID in order."
+    },
+    {
+      "kind": "tool",
+      "tool": "checkout_branch",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4"
+      },
+      "isError": false,
+      "ms": 915,
+      "label": null,
+      "text": "✅ Created and switched to branch: codebase-doctor/react-18.3.1-upgrade\nRepository: <workspace>\\.demo-run\\home\\repos\\local\\pantry-list-redux\\7bd3ea4f-0270-45ff-ab92-81d86606b3d4\nNext step: call apply_migration_patch with each stepId from the migration plan"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4",
+        "stepId": "step-2-dependencies"
+      },
+      "isError": true,
+      "ms": 210,
+      "label": "blocked: resolve the peer conflict first",
+      "text": "Resolve the peer-dependency conflicts first (step 'step-1-peer-compat', status pending): the install fails until they are fixed. Record it with markManualComplete, or skip: true with a reason if you believe the conflict is not real."
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4",
+        "stepId": "step-1-peer-compat"
+      },
+      "isError": false,
+      "ms": 365,
+      "label": "peer step → manual_required",
+      "text": "⚠️ Step 1: Resolve peer-dependency conflicts with react 18.3.1\nStatus: manual_required | Type: manual\nNo automated change is made for this step. Follow the step description, then record it with markManualComplete.\n\n(no commit — no source changes)\n\nNext pending step: step-2-dependencies"
+    },
+    {
+      "kind": "human",
+      "actor": "demo script (in place of Bob / the user)",
+      "action": "skipped the peer-compatibility step: \"react-redux should work with React 18\"",
+      "detail": "a wrong assumption — the install will prove otherwise"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4",
+        "stepId": "step-1-peer-compat",
+        "skip": true,
+        "note": "react-redux should work with React 18"
+      },
+      "isError": false,
+      "ms": 202,
+      "label": "skip with a reason",
+      "text": "⏭️ Step 1: Resolve peer-dependency conflicts with react 18.3.1\nStatus: skipped | Type: manual\nSkipped by user: react-redux should work with React 18\n\n(no commit — no source changes)\n\nNext pending step: step-2-dependencies"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4",
+        "stepId": "step-2-dependencies"
+      },
+      "isError": true,
+      "ms": 12488,
+      "label": "real npm install fails (ERESOLVE)",
+      "text": "❌ Step 2 FAILED (attempt 1) — recorded as 'failed'; its changes were rolled back.\n`npm install --no-audit --no-fund` failed, so package.json and package-lock.json were restored. Peer-dependency conflict: @testing-library/react@14.3.1 (needs react@\"^18.0.0\"). Upgrade the blocking package on the migration branch (see the plan's peer-compatibility step), commit, and retry this step. The preflight flagged `react-redux@7.2.6` (peer react ^16.8.3 || ^17; try `^7.2.7`) and step 'step-1-peer-compat' was skipped — that is the likely blocker even if npm names another package.\n--- output (tail) ---\nnpm error Conflicting peer dependency: react@18.3.1\nnpm error node_modules/react\nnpm error   peer react@\"^18.0.0\" from @testing-library/react@14.3.1\nnpm error   node_modules/@testing-library/react\nnpm error     dev @testing-library/react@\"^14.3.1\" from the root project\nnpm error\nnpm error Fix the upstream dependency conflict, or retry this command with --force or --legacy-peer-deps to accept an incorrect (and potentially broken) dependency resolution.\nnpm error\nnpm error\nnpm error For a full report see:\nnpm error ~\\AppData\\Local\\npm-cache\\_logs\\2026-09-26T10_26_14_933Z-eresolve-report.txt\nnpm error A complete log of this run can be found in: ~\\AppData\\Local\\npm-cache\\_logs\\2026-09-26T10_26_14_933Z-debug-0.log\nFix the cause and call apply_migration_patch again to retry, or skip: true with a reason."
+    },
+    {
+      "kind": "tool",
+      "tool": "get_session_status",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4"
+      },
+      "isError": false,
+      "ms": 336,
+      "label": null,
+      "text": "Session 7bd3ea4f-0270-45ff-ab92-81d86606b3d4 — <workspace>\\.demo-run\\work\\pantry-list-redux\nreact ^17.0.2 → 18.3.1 · phase: implementing · branch codebase-doctor/react-18.3.1-upgrade\nPlan 70abe5689cf4: approved 2026-09-26T10:26:11.352Z\n  ⏭️ step-1-peer-compat — skipped\n  ❌ step-2-dependencies — failed\n  ⏳ step-3-react-bc-1 — pending\n  ⏳ step-4-react-bc-2 — pending\n  ⏳ step-5-react-bc-3 — pending\n  ⏳ step-6-react-bc-4 — pending\n  ⏳ step-7-react-bc-8 — pending\n  ⏳ step-8-react-bc-6 — pending\n  ⏳ step-9-react-bc-7 — pending\n  ⏳ step-10-react-bc-12 — pending\n  ⏳ step-11-tests — pending\n\nNext: retry step-2-dependencies with apply_migration_patch (it failed: `npm install --no-audit --no-fund` failed, so package.json and package-lock.json were restored. Peer-dependency conflict)"
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_report",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4",
+        "format": "html"
+      },
+      "isError": false,
+      "ms": 698,
+      "label": "report snapshot: 08-step-failed",
+      "text": "<HTML report saved to reports/08-step-failed.html — 77114 characters>"
+    },
+    {
+      "kind": "human",
+      "actor": "demo script (in place of Bob / the user)",
+      "action": "upgraded react-redux to ^7.2.7 in package.json (the version the plan suggested)",
+      "detail": "package.json on the migration branch"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4",
+        "stepId": "step-1-peer-compat",
+        "markManualComplete": true,
+        "note": "react-redux 7.2.6 → ^7.2.7 (peer range includes React 18)"
+      },
+      "isError": false,
+      "ms": 1918,
+      "label": "skipped step completed after all",
+      "text": "✍️ Step 1: Resolve peer-dependency conflicts with react 18.3.1\nStatus: completed_manual | Type: manual\nCompleted manually: react-redux 7.2.6 → ^7.2.7 (peer range includes React 18)\n\n package.json | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n\nNext pending step: step-3-react-bc-1"
+    },
+    {
+      "kind": "tool",
+      "tool": "apply_migration_patch",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4",
+        "stepId": "step-2-dependencies"
+      },
+      "isError": false,
+      "ms": 71033,
+      "label": "retry: real npm install succeeds (attempt 2)",
+      "text": "✅ Step 2: Update react, react-dom, @testing-library/react to 18.3.1 and install\nStatus: applied | Type: config | attempt 2\nRan `npm install --no-audit --no-fund`; installed react@18.3.1, react-dom@18.3.1.\n\n package-lock.json | 90 +++++++++++++++++++++++++------------------------------\n package.json      |  6 ++--\n 2 files changed, 43 insertions(+), 53 deletions(-)\n\nNext pending step: step-3-react-bc-1"
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_report",
+      "args": {
+        "sessionId": "7bd3ea4f-0270-45ff-ab92-81d86606b3d4",
+        "format": "html"
+      },
+      "isError": false,
+      "ms": 469,
+      "label": "report snapshot: 10-step-retried",
+      "text": "<HTML report saved to reports/10-step-retried.html — 77825 characters>"
+    },
+    {
+      "kind": "tool",
+      "tool": "analyze_dependency_usage",
+      "args": {
+        "url": "<workspace>\\.demo-run\\work\\pantry-list",
+        "dependency": "react",
+        "targetVersion": "18.3.1"
+      },
+      "isError": false,
+      "ms": 1566,
+      "label": "side session: hand-written verification",
+      "text": "✅ Session created: 2c05c409-96ef-4adf-be86-40bfcabd7635\n📦 react ^17.0.2 → 18.3.1 · branch codebase-doctor/react-18.3.1-upgrade\n📁 codebase-doctor-sandbox/pantry-list @ main (javascript, npm — package-lock.json)\n🔍 13 source files scanned; react + react-dom used in 11 files (16 imports, 19 API usages)\n🧪 Tests: npm run test (jest) · build: npm run build · lint: npm run lint\n🧩 Peer conflicts: @testing-library/react@12.1.5 (peer react <18.0.0)\n\nNext step: call load_migration_requirements with sessionId 2c05c409-96ef-4adf-be86-40bfcabd7635"
+    },
+    {
+      "kind": "tool",
+      "tool": "load_migration_requirements",
+      "args": {
+        "sessionId": "2c05c409-96ef-4adf-be86-40bfcabd7635"
+      },
+      "isError": false,
+      "ms": 13,
+      "label": null,
+      "text": "📋 Migration requirements loaded for react ^17.0.2 → 18.3.1\nRules: react-17-to-18.json\n\nFound 8 applicable breaking changes:\n  [HIGH] react-bc-1: ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render() (automatable)\n  [HIGH] react-bc-2: ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() (automatable)\n  [MEDIUM] react-bc-3: act() from react-dom/test-utils is deprecated — import act from 'react' (available from React 18.3) (automatable)\n  [MEDIUM] react-bc-4: Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders (manual)\n  [LOW] react-bc-6: Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects (manual)\n  [LOW] react-bc-7: ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching (manual)\n  [MEDIUM] react-bc-8: ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot() (manual)\n  [LOW] react-bc-12: Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18 (manual)\n\n⚡ Automatable: 3 | 🔧 Manual: 5\n\nNext step: call calculate_migration_blast_radius"
+    },
+    {
+      "kind": "tool",
+      "tool": "calculate_migration_blast_radius",
+      "args": {
+        "sessionId": "2c05c409-96ef-4adf-be86-40bfcabd7635"
+      },
+      "isError": false,
+      "ms": 12,
+      "label": null,
+      "text": "🎯 Blast Radius: 🟡 Moderate blast radius\n\nTotal files using dependency: 11\nAffected files:               9\nRisk distribution:            🔴 High: 4  🟡 Medium: 0  🟢 Low: 5\n\nTop affected files:\n  [90/100] src/legacy/toast.jsx  — react-bc-1 +40, react-bc-8 +20, root bootstrap +30\n  [90/100] src/legacy/toast.test.jsx  — react-bc-1 +40, react-bc-3 +20, react-bc-12 +10, test harness +20\n  [80/100] src/index.jsx  — react-bc-1 +40, react-bc-6 +10, root bootstrap +30\n  [70/100] src/ssr-entry.jsx  — react-bc-2 +40, root bootstrap +30\n  [20/100] src/App.jsx  — react-bc-4 +20\n  ... and 4 more\n\nNext step: call generate_migration_plan (then switch to Plan mode to present it)"
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_migration_plan",
+      "args": {
+        "sessionId": "2c05c409-96ef-4adf-be86-40bfcabd7635"
+      },
+      "isError": false,
+      "ms": 22,
+      "label": null,
+      "text": "## Migration Plan: react ^17.0.2 → 18.3.1\n\n**Plan ID:** `b3b654d66018` · **Effort:** HIGH · **Steps:** 10 (4 automated, 6 manual/review)\n**Approval:** ⏳ NOT approved — no code will be changed until it is\n\nUpgrade react from ^17.0.2 to 18.3.1 across 9 affected files. 10 migration steps: 4 automatable, 6 requiring manual changes or review.\n\n| # | Step | Type | Automated | Files | Status |\n|---|---|---|---|---|---|\n| 1 | Update react, react-dom, @testing-library/react to 18.3.1 and install | config | yes | 2 | ⏳ pending |\n| 2 | ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 m… | codemod | yes | 3 | ⏳ pending |\n| 3 | ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() | codemod | yes | 1 | ⏳ pending |\n| 4 | act() from react-dom/test-utils is deprecated — import act from 'react' (available from… | codemod | yes | 1 | ⏳ pending |\n| 5 | Automatic batching: setState calls in timeouts/promises/native handlers are now batched… | manual | no | 4 | ⏳ pending |\n| 6 | ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on th… | manual | no | 1 | ⏳ pending |\n| 7 | Strict Mode now double-invokes effects (mount → unmount → mount) in development to surf… | manual | no | 1 | ⏳ pending |\n| 8 | ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching | manual | no | 1 | ⏳ pending |\n| 9 | Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = tr… | manual | no | 1 | ⏳ pending |\n| 10 | Update and verify tests | test | no | 3 | ⏳ pending |\n\n### Step details\n\n**1. `step-1-dependencies`** — `react` ^17.0.2 → ^18.3.1 (dependencies); `react-dom` ^17.0.2 → ^18.3.1 (dependencies — kept in lock-step); `@testing-library/react` ^12.1.5 → ^14.3.1 (devDependencies — peer range must accept the target). Then run `npm install` (updates package-lock.json) and verify the installed versions. Unrelated dependencies are not changed.\n  Files: package.json, package-lock.json\n\n**2. `step-2-react-bc-1`** — ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render()\n  Files: src/index.jsx, src/legacy/toast.jsx, src/legacy/toast.test.jsx\n\n**3. `step-3-react-bc-2`** — ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot()\n  Files: src/ssr-entry.jsx\n\n**4. `step-4-react-bc-3`** — act() from react-dom/test-utils is deprecated — import act from 'react' (available from React 18.3)\n  Files: src/legacy/toast.test.jsx\n\n**5. `step-5-react-bc-4`** — Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders\n  Files: src/App.jsx, src/components/AddItemForm.jsx, src/components/ItemList.jsx, src/components/SyncStatus.jsx\n  ⚠️ Manual action required: Review any tests that assert on intermediate render states inside setTimeout, Promise.then, or native event handlers. Wrap those assertions in `act()` or use `flushSync` from 'react-dom' to opt out of automatic batching where needed.\n\n**6. `step-6-react-bc-8`** — ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot()\n  Files: src/legacy/toast.jsx\n  ⚠️ Manual action required: Keep the root returned by createRoot(container) and call root.unmount() instead of unmountComponentAtNode(container). In tests, unmount the root the test created (React Testing Library unmounts automatically).\n\n**7. `step-7-react-bc-6`** — Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects\n  Files: src/index.jsx\n  ⚠️ Manual action required: Audit useEffect, useLayoutEffect, and class lifecycle methods for non-idempotent side effects (network requests, analytics calls, subscriptions). Ensure cleanup functions are implemented so double-invocation does not cause observable problems in development.\n\n**8. `step-8-react-bc-7`** — ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching\n  Files: src/legacy/store.js\n  ⚠️ Manual action required: With React 18's automatic batching, explicit calls to unstable_batchedUpdates are no longer needed in most cases. Remove them and verify behaviour. If you need to force synchronous rendering, use flushSync from 'react-dom' instead.\n\n**9. `step-9-react-bc-12`** — Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18\n  Files: src/legacy/toast.test.jsx\n  ⚠️ Manual action required: In the test setup file (e.g. setupTests.js / jest.setup.js), set `globalThis.IS_REACT_ACT_ENVIRONMENT = true;` so React 18 knows it runs in an act-aware test environment. React Testing Library ≥ 13 sets this automatically for tests that use it.\n\n**10. `step-10-tests`** — Update any test utilities that changed in the new version, then confirm the full suite passes with verify_migration. This step makes no automated source changes.\n  Files: src/App.test.jsx, src/components/SyncStatus.test.jsx, src/legacy/toast.test.jsx\n\n---\n**Review the plan above and type \"approved\" to begin implementation.**\nOr describe any changes you'd like to make before proceeding.\n(After the user approves: call approve_migration_plan with planId `b3b654d66018` and confirmation \"approved\".)"
+    },
+    {
+      "kind": "human",
+      "actor": "demo script (in place of Bob / the user)",
+      "action": "wrote checks-result.json by hand (\"reconstructed\")",
+      "detail": "exactly what happened in the earlier dry run"
+    },
+    {
+      "kind": "tool",
+      "tool": "get_session_status",
+      "args": {
+        "sessionId": "2c05c409-96ef-4adf-be86-40bfcabd7635"
+      },
+      "isError": false,
+      "ms": 141,
+      "label": "integrity check reported",
+      "text": "Session 2c05c409-96ef-4adf-be86-40bfcabd7635 — codebase-doctor-sandbox/pantry-list\nreact ^17.0.2 → 18.3.1 · phase: plan_ready · branch codebase-doctor/react-18.3.1-upgrade\nPlan b3b654d66018: NOT approved\n  ⏳ step-1-dependencies — pending\n  ⏳ step-2-react-bc-1 — pending\n  ⏳ step-3-react-bc-2 — pending\n  ⏳ step-4-react-bc-3 — pending\n  ⏳ step-5-react-bc-4 — pending\n  ⏳ step-6-react-bc-8 — pending\n  ⏳ step-7-react-bc-6 — pending\n  ⏳ step-8-react-bc-7 — pending\n  ⏳ step-9-react-bc-12 — pending\n  ⏳ step-10-tests — pending\nVerification: ⚠️ Integrity check failed for checks-result.json (no seal): the file was modified or written outside Codebase Doctor's tools, so its contents are not trusted. Re-run the tool that produces it (verify_migration rewrites checks-result.json), or start a new session with analyze_dependency_usage.\n\nNext: present plan b3b654d66018 and wait for the user's \"approved\", then approve_migration_plan"
+    },
+    {
+      "kind": "tool",
+      "tool": "generate_report",
+      "args": {
+        "sessionId": "2c05c409-96ef-4adf-be86-40bfcabd7635",
+        "format": "html"
+      },
+      "isError": false,
+      "ms": 156,
+      "label": "report snapshot: 09-verification-untrusted",
+      "text": "<HTML report saved to reports/09-verification-untrusted.html — 73661 characters>"
+    },
+    {
+      "kind": "tool",
+      "tool": "analyze_dependency_usage",
+      "args": {
+        "url": "https://gitlab.com/acme/shop",
+        "dependency": "react",
+        "targetVersion": "18"
+      },
+      "isError": true,
+      "ms": 3,
+      "label": "unsupported host",
+      "text": "Unsupported repository URL 'https://gitlab.com/acme/shop': only github.com repositories are supported. Accepted: https://github.com/<owner>/<repo> (optionally .git), git@github.com:<owner>/<repo>.git, or an absolute path to a local git repository."
+    },
+    {
+      "kind": "tool",
+      "tool": "analyze_dependency_usage",
+      "args": {
+        "url": "<workspace>\\.demo-run\\work\\pantry-list",
+        "dependency": "react",
+        "targetVersion": "latest"
+      },
+      "isError": true,
+      "ms": 3,
+      "label": "dist-tag instead of a version",
+      "text": "Target version 'latest' is not supported. Use a version like '18', '18.3.1' or '^18.3.1' (dist-tags such as 'latest' and ranges such as '>=18' are not accepted)."
+    },
+    {
+      "kind": "tool",
+      "tool": "analyze_dependency_usage",
+      "args": {
+        "url": "<workspace>\\.demo-run\\work\\pantry-list",
+        "dependency": "react",
+        "targetVersion": "18.99.0"
+      },
+      "isError": true,
+      "ms": 1498,
+      "label": "version that was never published",
+      "text": "No published version of react matches 18.99.0 (newest in that major: 18.3.1). Check the version (e.g. `npm view react versions`) and try again."
+    },
+    {
+      "kind": "tool",
+      "tool": "analyze_dependency_usage",
+      "args": {
+        "url": "<workspace>\\.demo-run\\work\\pantry-list",
+        "dependency": "vue",
+        "targetVersion": "3"
+      },
+      "isError": true,
+      "ms": 1507,
+      "label": "dependency not declared",
+      "text": "'vue' is not declared in package.json dependencies or devDependencies."
+    },
+    {
+      "kind": "tool",
+      "tool": "analyze_dependency_usage",
+      "args": {
+        "url": "<workspace>\\.demo-run\\work\\pantry-list\\src",
+        "dependency": "react",
+        "targetVersion": "18"
+      },
+      "isError": true,
+      "ms": 7,
+      "label": "not a git repository",
+      "text": "'<workspace>\\.demo-run\\work\\pantry-list\\src' is not a git repository (no .git). Initialise it with git or pass a GitHub URL."
+    },
+    {
+      "kind": "tool",
+      "tool": "analyze_dependency_usage",
+      "args": {
+        "url": "https://github.com/codebase-doctor-sandbox/does-not-exist",
+        "dependency": "react",
+        "targetVersion": "18"
+      },
+      "isError": true,
+      "ms": 16,
+      "label": "repository not found (sandbox API 404)",
+      "text": "Reading repository metadata failed: repository 'codebase-doctor-sandbox/does-not-exist' was not found or GITHUB_TOKEN has no access to it. Check the URL and the token's repository access."
+    },
+    {
+      "kind": "tool",
+      "tool": "get_session_status",
+      "args": {},
+      "isError": false,
+      "ms": 11,
+      "label": "list sessions",
+      "text": "Recent sessions (newest first):\n- 2c05c409-96ef-4adf-be86-40bfcabd7635 · codebase-doctor-sandbox/pantry-list · react ^17.0.2 → 18.3.1 · plan_ready · 2026-09-26 10:27\n- 7bd3ea4f-0270-45ff-ab92-81d86606b3d4 · <workspace>\\.demo-run\\work\\pantry-list-redux · react ^17.0.2 → 18.3.1 · implementing · 2026-09-26 10:26\n- 3fd51510-5cd8-41f8-8271-285c542bb72f · codebase-doctor-sandbox/pantry-list · react ^17.0.2 → 18.3.1 · pr_open · 2026-09-26 10:19\n\nCall get_session_status with a sessionId for details and the next step."
+    }
+  ]
+}

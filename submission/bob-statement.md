@@ -38,10 +38,10 @@ Used for: ingesting user-supplied React 18 migration guide PDF.
 
 The user attaches the migration PDF directly in the Bob chat. Bob reads it natively — no manual text extraction, no copy-paste. The extracted content is passed to `load_migration_requirements`, which uses it to confirm the built-in rules (keeping their IDs, so automated fixes still apply) and to add any extra requirement it finds as a manual item.
 
-### 7. MCP Server (11 tools)
+### 7. MCP Server (12 tools)
 **Directory:** `backend/`
 
-All backend logic is exposed as an MCP server. The 11 tools cover the complete migration lifecycle from clone to PR. The server is designed to be reusable independently of the skill — any Bob user can connect it and call individual analysis tools.
+All backend logic is exposed as an MCP server. The 12 tools cover the complete migration lifecycle from clone to PR, plus session recovery (`get_session_status`). The server is designed to be reusable independently of the skill — any Bob user can connect it and call individual analysis tools.
 
 ### 8. HTML Artifact
 Used for: generating the before/after migration report as a shareable one-pager.

@@ -1,0 +1,47 @@
+{
+ "w": 1600,
+ "h": 560,
+ "alt": "Hand-drawn comparison: the reply “looks fine, but can you skip the tests?” meets a closed, locked gate and is refused; the reply “approved” opens the gate.",
+ "labels": [
+  {
+   "x": 300,
+   "y": 74,
+   "w": 500,
+   "size": 36,
+   "color": "#2a2a30",
+   "weight": 600,
+   "align": "center",
+   "text": "“looks fine, but can<br>you skip the tests?”"
+  },
+  {
+   "x": 310,
+   "y": 480,
+   "w": 520,
+   "size": 40,
+   "color": "#c0392b",
+   "weight": 700,
+   "align": "center",
+   "text": "refused — nothing changes"
+  },
+  {
+   "x": 1280,
+   "y": 90,
+   "w": 260,
+   "size": 42,
+   "color": "#2a2a30",
+   "weight": 700,
+   "align": "center",
+   "text": "“approved”"
+  },
+  {
+   "x": 1150,
+   "y": 480,
+   "w": 640,
+   "size": 40,
+   "color": "#1f8a4c",
+   "weight": 700,
+   "align": "center",
+   "text": "approval recorded for this exact plan"
+  }
+ ]
+}

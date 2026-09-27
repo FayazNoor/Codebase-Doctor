@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Try it · Codebase Doctor</title>
+<meta name="description" content="Step through a recorded run of the Codebase Doctor MCP server upgrading a React 17 app to React 18.3.1: every tool call, the approval gate, the failed first check, the fix and the pull request.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Try Codebase Doctor — step through a real migration">
+<meta property="og:description" content="Every MCP call from a recorded React 17 → 18.3.1 upgrade. The approval is yours to give.">
+<meta property="og:url" content="https://codebase-doctor-bob2.vercel.app/try/">
+<meta property="og:image" content="https://codebase-doctor-bob2.vercel.app/shots/report-final.png">
+<link rel="canonical" href="https://codebase-doctor-bob2.vercel.app/try/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<script>document.documentElement.classList.add("js")</script>
+<link rel="stylesheet" href="/assets/base.css">
+<style>
+.try-head { padding: clamp(28px, 5vw, 56px) var(--gutter) 0; max-width: 1480px; margin: 0 auto; }
+.try-title { margin: 0; font: 700 clamp(30px, 4.6vw, 54px)/1.05 var(--mono); letter-spacing: -.05em; color: var(--ink); text-wrap: balance; }
+.head-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px 32px; }
+.replay-pill { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 7px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font: 600 12px/1 var(--mono); }
+.replay-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.try-lede { margin: 14px 0 0; max-width: 760px; font-size: 16.5px; }
+.scenarios { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+.scenarios button { display: inline-flex; align-items: center; gap: 8px; font: 600 13px/1 var(--mono); color: var(--body); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 10px 14px; cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
+.scenarios button:hover { color: var(--ink); border-color: var(--line-strong); }
+.scenarios button[aria-selected="true"] { color: var(--ink); border-color: var(--accent); background: var(--accent-soft); }
+.scenarios small { font: 500 11.5px/1 var(--mono); color: var(--muted); }
+.scenario-note { margin: 12px 0 0; font-size: 14.5px; color: var(--body); max-width: 900px; }
+
+.console { display: grid; grid-template-columns: 250px minmax(0, 1fr) minmax(0, .95fr); gap: 16px; max-width: 1480px; margin: 22px auto 0; padding: 0 var(--gutter); align-items: start; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.panel-head h2 { margin: 0; max-width: none; font: 700 13px/1 var(--mono); letter-spacing: .02em; }
+.panel-head .meta { font: 500 12px/1 var(--mono); color: var(--muted); }
+.sticky { position: sticky; top: 80px; }
+
+/* Left: progress, stages, tools */
+.progress { height: 4px; margin: 14px 16px 4px; border-radius: 4px; background: var(--sunken); overflow: hidden; }
+.progress i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 4px; transition: width .5s var(--ease); }
+.stages { list-style: none; margin: 10px 0 0; padding: 4px 16px 12px; border-bottom: 1px solid var(--line); }
+.stages li { position: relative; display: flex; align-items: center; gap: 10px; padding: 5px 0; font: 500 12.5px/1.3 var(--mono); color: var(--muted); }
+.stages .s-dot { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--line-strong); background: var(--paper); font-size: 10px; flex: none; transition: all .3s var(--ease); }
+.stages li.done { color: var(--body); }
+.stages li.done .s-dot { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.stages li.current { color: var(--ink); font-weight: 700; }
+.stages li.current .s-dot { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.stages li.blocked .s-dot { background: var(--bad); border-color: var(--bad); color: #fff; }
+.tools { list-style: none; margin: 0; padding: 10px 8px 12px; }
+.tools li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; font: 500 12px/1.3 var(--mono); color: var(--muted); transition: background .25s, color .25s; }
+.tools li .t-name { min-width: 0; }
+.tools li .n { flex: none; white-space: nowrap; }
+.tools li .t-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); flex: none; }
+.tools li.used { color: var(--body); }
+.tools li.used .t-dot { background: var(--ok); }
+.tools li.err .t-dot { background: var(--bad); }
+.tools li.next { color: var(--ink); background: var(--accent-soft); font-weight: 700; }
+.tools li.next .t-dot { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+.tools li .n { margin-left: auto; color: var(--faint); font-weight: 500; }
+
+/* Middle: next call + history */
+.next-card { padding: 20px 20px 22px; }
+.next-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; font: 500 12px/1.4 var(--mono); color: var(--muted); }
+.stage-chip { padding: 4px 8px; border-radius: 999px; background: var(--sunken); color: var(--ink); font-weight: 600; }
+.next-tool { margin: 12px 0 0; font: 700 clamp(19px, 2vw, 24px)/1.2 var(--mono); letter-spacing: -.03em; color: var(--ink); overflow-wrap: anywhere; }
+.next-label { margin: 6px 0 0; font-size: 14.5px; color: var(--body); }
+.args { margin: 14px 0 0; padding: 12px 14px; border-radius: 10px; background: var(--sunken); border: 1px solid var(--line); font: 400 12px/1.6 var(--mono); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 220px; overflow: auto; }
+.args-label { display: block; margin-top: 14px; font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+.actions .btn { padding: 12px 18px; font-size: 13.5px; }
+.actions .hint { font: 500 12px/1.4 var(--mono); color: var(--muted); }
+kbd { font: 600 11px/1 var(--mono); padding: 3px 6px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, .45); }
+.running { display: flex; align-items: center; gap: 12px; margin-top: 18px; font: 500 13px/1.4 var(--mono); color: var(--body); }
+.spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line-strong); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.human { display: inline-flex; align-items: center; gap: 8px; font: 600 12px/1 var(--mono); color: var(--accent-ink); }
+
+.gate { margin-top: 16px; padding: 16px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); background: var(--accent-soft); }
+.gate p { margin: 0 0 12px; font-size: 14.5px; color: var(--ink); }
+.gate form { display: flex; flex-wrap: wrap; gap: 10px; }
+.gate input { flex: 1 1 240px; min-width: 0; font: 500 14px/1 var(--mono); color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 999px; padding: 12px 16px; }
+.gate input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.quick button { font: 500 12px/1.2 var(--mono); color: var(--body); background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 999px; padding: 7px 11px; cursor: pointer; }
+.quick button:hover { color: var(--ink); border-style: solid; }
+.gate-msg { margin: 10px 0 0 !important; font: 500 12.5px/1.5 var(--mono) !important; color: var(--bad) !important; }
+
+.log-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.log-head h2 { margin: 0; max-width: none; font: 700 13px/1 var(--mono); }
+.log-head button { font: 600 12px/1 var(--mono); color: var(--body); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 7px 11px; cursor: pointer; }
+.log-head button:hover { color: var(--ink); border-color: var(--line-strong); }
+.log { list-style: none; margin: 0; padding: 6px 0; }
+.log:empty::before { content: "Results appear here, newest first."; display: block; padding: 18px 16px; font: 500 13px/1.5 var(--mono); color: var(--muted); }
+.entry { padding: 14px 16px; border-bottom: 1px solid var(--line); animation: enter .55s var(--ease); }
+.entry:last-child { border-bottom: 0; }
+@keyframes enter { from { opacity: 0; transform: translateY(-8px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+.entry-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.entry-tool { font: 700 13px/1.3 var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+.pill { padding: 4px 8px; border-radius: 999px; font: 600 11px/1 var(--mono); }
+.pill.ok { color: var(--ok); background: var(--ok-soft); } .pill.bad { color: var(--bad); background: var(--bad-soft); } .pill.you { color: var(--accent-ink); background: var(--accent-soft); } .pill.skip { color: var(--muted); background: var(--sunken); }
+.entry-meta { margin-left: auto; font: 500 11.5px/1 var(--mono); color: var(--muted); }
+.entry-label { margin: 6px 0 0; font-size: 13.5px; color: var(--body); }
+.result { margin: 10px 0 0; padding: 12px 14px; border-radius: 10px; background: #111113; color: #e7e7ea; font: 400 12px/1.62 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.result.err { background: var(--bad-soft); color: var(--ink); border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent); }
+.result.clamp { max-height: 300px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); }
+.result a { color: #f0b95e; }
+.more-btn { margin-top: 8px; font: 600 12px/1 var(--mono); color: var(--ink); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; cursor: pointer; }
+.entry details { margin-top: 8px; }
+.entry summary { font: 500 12px/1.4 var(--mono); color: var(--muted); cursor: pointer; }
+.entry details pre { margin: 6px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--sunken); font: 400 11.5px/1.55 var(--mono); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.recorded-note { margin: 8px 0 0; font: 500 12px/1.5 var(--mono); color: var(--muted); }
+
+/* Right: report preview */
+.frame-wrap { position: relative; height: calc(100vh - 190px); min-height: 420px; overflow: hidden; border-radius: 0 0 16px 16px; background: var(--sunken); }
+.frame-wrap iframe { position: absolute; top: 0; left: 0; width: 1280px; border: 0; transform-origin: 0 0; background: var(--paper); }
+.empty-preview { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; font: 500 13px/1.6 var(--mono); color: var(--muted); }
+.preview-label { font: 500 12px/1.3 var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preview-open { font: 600 12px/1 var(--mono); }
+.flash { animation: flash 1.1s var(--ease); }
+@keyframes flash { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
+
+.done-card h3 { font-size: 20px; }
+.done-card p { margin: 8px 0 0; font-size: 15px; }
+
+@media (max-width: 1180px) {
+  .console { grid-template-columns: 230px minmax(0, 1fr); }
+  .preview-panel { grid-column: 1 / -1; }
+  .preview-panel.sticky { position: static; }
+  .frame-wrap { height: 72vh; }
+}
+@media (max-width: 760px) {
+  .console { grid-template-columns: minmax(0, 1fr); }
+  .tools-panel.sticky { position: static; }
+  .tools { display: none; }
+  .stages { display: flex; gap: 6px; overflow-x: auto; border-bottom: 0; padding-bottom: 14px; }
+  .stages li { flex: none; padding: 6px 10px 6px 6px; border: 1px solid var(--line); border-radius: 999px; }
+  .frame-wrap { height: 70vh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .entry, .flash { animation: none; }
+  .progress i { transition: none; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#next">Skip to the next call</a>
+
+<header class="topbar solid">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="Codebase Doctor home"><span class="slashes">//</span>codebase-doctor</a>
+    <nav class="nav" aria-label="Main">
+      <a href="/try/">Try it</a>
+      <a href="/#demo">Demo</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="try-head">
+    <span class="replay-pill"><i aria-hidden="true"></i>Replay of a recorded run · 26 Sep 2026</span>
+    <h1 class="try-title">Run a real migration, <em>step by step.</em></h1>
+    <p class="try-lede">The Codebase Doctor MCP server upgrading a React 17 app to React 18.3.1. Every result is the server’s real output from that run, and the approval is yours to give. Nothing executes in your browser; to run it on your own code, <a href="/#install">install it in IBM Bob</a>.</p>
+    <div class="scenarios" role="tablist" aria-label="Scenario">
+      <button type="button" role="tab" aria-selected="true" data-scenario="main">Main run <small id="c-main"></small></button>
+      <button type="button" role="tab" aria-selected="false" data-scenario="peer">Peer conflict <small id="c-peer"></small></button>
+      <button type="button" role="tab" aria-selected="false" data-scenario="tamper">Tampered result <small id="c-tamper"></small></button>
+      <button type="button" role="tab" aria-selected="false" data-scenario="inputs">Bad inputs <small id="c-inputs"></small></button>
+    </div>
+    <p class="scenario-note" id="scenario-note"></p>
+  </div>
+
+  <div class="console">
+    <aside class="panel tools-panel sticky" aria-label="Progress">
+      <div class="panel-head"><h2>Session</h2><span class="meta" id="count">0 / 0</span></div>
+      <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+      <ol class="stages" id="stages"></ol>
+      <ul class="tools" id="tools" aria-label="MCP tools"></ul>
+    </aside>
+
+    <section class="panel run-panel" aria-label="Calls">
+      <div class="next-card" id="next" tabindex="-1"></div>
+      <div class="log-head"><h2>History</h2><button type="button" id="restart">Restart</button></div>
+      <ol class="log" id="log"></ol>
+    </section>
+
+    <aside class="panel preview-panel sticky" aria-label="Report preview">
+      <div class="panel-head"><h2>Report</h2><span class="preview-label" id="preview-label">not generated yet</span><a class="preview-open" id="preview-open" href="/reports/07-final.html" target="_blank" rel="noopener" hidden>Open ↗</a></div>
+      <div class="frame-wrap" id="frame-wrap">
+        <div class="empty-preview" id="empty-preview">The report appears here each time the server generates it.</div>
+        <iframe id="preview" title="Migration report at this stage" hidden></iframe>
+      </div>
+    </aside>
+  </div>
+  <p class="sr" aria-live="polite" id="live"></p>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Built by <a href="https://www.linkedin.com/in/fayaz-noor/" target="_blank" rel="noopener">Fayaz Noor</a> and <a href="https://www.uzairahmad.dev/" target="_blank" rel="noopener">Uzair Ahmad</a> with IBM Bob</span>
+    <span>lablab.ai IBM Bob 2.0 Hackathon</span>
+  </div>
+</footer>
+
+<script src="/assets/base.js"></script>
+<script>
+(function () {
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var TOOLS = ["analyze_dependency_usage", "load_migration_requirements", "calculate_migration_blast_radius", "generate_migration_plan",
+    "approve_migration_plan", "checkout_branch", "apply_migration_patch", "run_checks", "verify_migration", "generate_report",
+    "create_pull_request", "get_session_status"];
+  var STAGES = ["Analyse", "Rules", "Risk", "Plan", "Approve", "Implement", "Verify", "Pull request"];
+  var STAGE_OF = { analyze_dependency_usage: 0, load_migration_requirements: 1, calculate_migration_blast_radius: 2, generate_migration_plan: 3,
+    approve_migration_plan: 4, checkout_branch: 5, apply_migration_patch: 5, verify_migration: 6, run_checks: 6, create_pull_request: 7 };
+  var SCENARIOS = {
+    main: { from: 0, to: 46, note: "The full workflow on the React 17 demo app, from analysis to the pull request. The plan waits for your reply: only “approved” unlocks the branch." },
+    peer: { from: 47, to: 65, note: "The demo app pinned to a react-redux release whose peer range stops at React 17. The warning is skipped, the real npm install fails and is rolled back, then the retry succeeds." },
+    tamper: { from: 66, to: 72, note: "Someone writes a “passed” verification result by hand. The session seal catches it, and the report says so." },
+    inputs: { from: 73, to: 79, note: "Inputs the server rejects before doing any work: an unsupported host, a dist-tag, an unpublished version, an undeclared dependency, a folder that isn’t a repository, and a repository that doesn’t exist." },
+  };
+  var APPROVAL_TEXT = "replied to the plan: \"approved\"";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var data = null, scenario = "main", pos = 0, busy = false, auto = false, autoTimer = null;
+  var toolState = {}, stageState = [], lastReport = null;
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function linkify(s) { return esc(s).replace(/https:\/\/codebase-doctor-bob2\.vercel\.app(\/sandbox\/[\w./-]+)/g, '<a href="$1" target="_blank" rel="noopener">$&</a>'); }
+  function dur(ms) {
+    if (ms == null) return "";
+    if (ms < 1000) return ms + " ms";
+    var s = ms / 1000;
+    if (s < 60) return (s < 10 ? s.toFixed(1) : Math.round(s)) + " s";
+    var m = Math.floor(s / 60);
+    return m + " min " + Math.round(s - m * 60) + " s";
+  }
+  function entries() { var sc = SCENARIOS[scenario]; return data.entries.slice(sc.from, sc.to + 1); }
+  function current() { return entries()[pos] || null; }
+  function isApproval(e) { return e && e.kind === "human" && e.action === APPROVAL_TEXT; }
+  function isFirstReply(e) { return e && e.kind === "human" && /^replied to the plan: "/.test(e.action) && e.action !== APPROVAL_TEXT; }
+  function announce(t) { $("live").textContent = t; }
+
+  // ---- left panel ---------------------------------------------------------
+  function renderSide() {
+    var list = entries();
+    $("count").textContent = Math.min(pos, list.length) + " / " + list.length;
+    $("bar").style.width = (100 * Math.min(pos, list.length) / list.length) + "%";
+    var next = current(), nextTool = next && next.kind === "tool" ? next.tool : null;
+    $("tools").innerHTML = TOOLS.map(function (t) {
+      var st = toolState[t] || { n: 0, err: false };
+      var cls = (st.n ? "used" : "") + (st.err && !st.ok ? " err" : "") + (t === nextTool ? " next" : "");
+      return '<li class="' + cls + '"><span class="t-dot" aria-hidden="true"></span><span class="t-name">' + t.replace(/_/g, "_<wbr>") + "</span>" +
+        (st.n ? '<span class="n">×' + st.n + "</span>" : "") + "</li>";
+    }).join("");
+    $("stages").innerHTML = STAGES.map(function (s, i) {
+      var st = stageState[i] || "";
+      return '<li class="' + st + '"><span class="s-dot" aria-hidden="true">' + (st === "done" ? "✓" : st === "blocked" ? "!" : "") + "</span>" + s +
+        (st ? '<span class="sr"> — ' + (st === "done" ? "done" : st === "blocked" ? "blocked" : "current") + "</span>" : "") + "</li>";
+    }).join("");
+  }
+  // A successful call completes its stage (and every earlier one); a refused call changes nothing.
+  function markStage(tool, ok) {
+    var i = STAGE_OF[tool];
+    if (i == null || !ok) return;
+    for (var k = 0; k <= i; k++) stageState[k] = "done";
+    if (i + 1 < STAGES.length && stageState[i + 1] !== "done") stageState[i + 1] = "current";
+  }
+
+  // ---- report preview -----------------------------------------------------
+  function fitFrame() {
+    var wrap = $("frame-wrap"), f = $("preview");
+    var s = wrap.clientWidth / 1280;
+    f.style.transform = "scale(" + s + ")";
+    f.style.height = (wrap.clientHeight / s) + "px";
+  }
+  function showReport(file, label) {
+    lastReport = file;
+    var f = $("preview");
+    $("empty-preview").hidden = true;
+    f.hidden = false;
+    f.src = "/reports/" + file;
+    $("preview-label").textContent = label || file;
+    var open = $("preview-open");
+    open.hidden = false;
+    open.href = "/reports/" + file;
+    fitFrame();
+    var panel = document.querySelector(".preview-panel");
+    panel.classList.remove("flash"); void panel.offsetWidth; panel.classList.add("flash");
+  }
+  function clearReport() {
+    lastReport = null;
+    $("preview").hidden = true;
+    $("preview").removeAttribute("src");
+    $("empty-preview").hidden = false;
+    $("preview-label").textContent = "not generated yet";
+    $("preview-open").hidden = true;
+  }
+  if ("ResizeObserver" in window) new ResizeObserver(fitFrame).observe($("frame-wrap"));
+
+  // ---- history ------------------------------------------------------------
+  function addLog(html) {
+    var li = document.createElement("li");
+    li.className = "entry";
+    li.innerHTML = html;
+    var log = $("log");
+    log.insertBefore(li, log.firstChild);
+    li.querySelectorAll(".result").forEach(function (r) {
+      if (r.scrollHeight > 320) {
+        r.classList.add("clamp");
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "more-btn"; b.textContent = "Show all";
+        b.addEventListener("click", function () { var c = r.classList.toggle("clamp"); b.textContent = c ? "Show all" : "Show less"; });
+        r.after(b);
+      }
+    });
+  }
+  function toolLog(e, extra) {
+    var ok = !e.isError;
+    var body;
+    if (e.report) body = '<p class="entry-label">Rendered the HTML report <code>' + esc(e.report) + "</code>: it’s on the right.</p>";
+    else body = '<pre class="result' + (ok ? "" : " err") + '">' + linkify(e.text || "") + "</pre>";
+    addLog('<div class="entry-head"><span class="entry-tool">' + esc(e.tool) + '</span><span class="pill ' + (ok ? "ok" : "bad") + '">' + (ok ? "ok" : "refused / error") + "</span>" +
+      '<span class="entry-meta">recorded ' + dur(e.ms) + "</span></div>" +
+      (e.label && !e.report ? '<p class="entry-label">' + esc(e.label) + "</p>" : "") + body +
+      (extra || "") +
+      '<details><summary>Arguments</summary><pre>' + esc(JSON.stringify(e.args, null, 2)) + "</pre></details>");
+  }
+  function humanLog(text, detail, pill) {
+    addLog('<div class="entry-head"><span class="entry-tool">You, in Bob</span><span class="pill ' + (pill || "you") + '">' + (pill === "skip" ? "not needed" : "human") + "</span></div>" +
+      '<p class="entry-label">' + esc(text) + "</p>" + (detail ? '<p class="recorded-note">' + esc(detail) + "</p>" : ""));
+  }
+
+  // ---- next card ----------------------------------------------------------
+  function renderNext() {
+    var e = current(), list = entries(), card = $("next");
+    renderSide();
+    if (!e) {
+      stopAuto();
+      var extra = scenario === "main"
+        ? '<div class="actions"><a class="btn btn-primary" href="' + esc(data.sandboxPr) + '" target="_blank" rel="noopener">Open the pull request ↗</a><a class="btn btn-ghost" href="/reports/07-final.html" target="_blank" rel="noopener">Open the final report ↗</a></div>'
+        : '<div class="actions"><button type="button" class="btn btn-primary" data-go="main">Replay the main run</button></div>';
+      card.innerHTML = '<div class="done-card"><div class="next-meta"><span class="stage-chip">Done</span>' + list.length + " of " + list.length + "</div>" +
+        "<h3>Replay complete.</h3><p>" + (scenario === "main"
+          ? "Approved by you, verified twice (the first run failed honestly), and a pull request opened with the whole report as its description."
+          : "Try the other scenarios above, or the main run.") + "</p>" + extra + "</div>";
+      card.querySelectorAll("[data-go]").forEach(function (b) { b.addEventListener("click", function () { selectScenario(b.getAttribute("data-go")); }); });
+      return;
+    }
+    var meta = '<div class="next-meta"><span>Call ' + (pos + 1) + " of " + list.length + "</span>" +
+      (e.kind === "tool" && STAGE_OF[e.tool] != null ? '<span class="stage-chip">' + STAGES[STAGE_OF[e.tool]] + "</span>" : "") + "</div>";
+
+    if (isFirstReply(e) || isApproval(e)) {
+      card.innerHTML = meta + '<p class="human">You, in Bob</p><h3 class="next-tool">The plan is waiting for you</h3>' +
+        '<div class="gate"><p>Reply to the plan. Only <strong>“approved”</strong> lets the server create the branch; anything else is refused.</p>' +
+        '<form id="gate-form" autocomplete="off"><label class="sr" for="reply">Your reply</label><input id="reply" name="reply" placeholder="Type your reply, e.g. approved" maxlength="80">' +
+        '<button class="btn btn-primary" type="submit">Send</button></form>' +
+        '<div class="quick"><button type="button" data-reply="looks fine, but can you skip the tests?">“looks fine, but can you skip the tests?”</button><button type="button" data-reply="approved">“approved”</button></div>' +
+        '<p class="gate-msg" id="gate-msg" hidden></p></div>';
+      var form = $("gate-form"), input = $("reply");
+      form.addEventListener("submit", function (ev) { ev.preventDefault(); reply(input.value); });
+      card.querySelectorAll("[data-reply]").forEach(function (b) { b.addEventListener("click", function () { input.value = b.getAttribute("data-reply"); reply(input.value); }); });
+      stopAuto();
+      return;
+    }
+    if (e.kind === "human") {
+      card.innerHTML = meta + '<p class="human">You, in Bob</p><h3 class="next-tool">' + esc(cap(e.action)) + "</h3>" +
+        (e.detail ? '<p class="next-label">' + esc(e.detail) + "</p>" : "") +
+        '<div class="actions"><button type="button" class="btn btn-primary" id="run">Do it <kbd>↵</kbd></button>' + autoBtn() + "</div>";
+    } else {
+      card.innerHTML = meta + '<h3 class="next-tool">' + esc(e.tool) + "</h3>" +
+        (e.label ? '<p class="next-label">' + esc(cap(e.label)) + "</p>" : "") +
+        '<span class="args-label">Arguments</span><pre class="args">' + esc(JSON.stringify(e.args, null, 2)) + "</pre>" +
+        '<div class="actions"><button type="button" class="btn btn-primary" id="run">Run <kbd>↵</kbd></button>' + autoBtn() +
+        '<span class="hint">recorded: ' + dur(e.ms) + "</span></div>";
+    }
+    $("run").addEventListener("click", step);
+    var ab = $("auto"); if (ab) ab.addEventListener("click", toggleAuto);
+  }
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+  function autoBtn() { return '<button type="button" class="btn btn-ghost" id="auto">' + (auto ? "Pause" : "Auto-play") + "</button>"; }
+
+  // ---- stepping -----------------------------------------------------------
+  function step() {
+    if (busy) return;
+    var e = current();
+    if (!e || isFirstReply(e) || isApproval(e)) return;
+    if (e.kind === "human") {
+      humanLog(cap(e.action), e.detail);
+      pos++;
+      announce("Done: " + e.action);
+      renderNext();
+      scheduleAuto();
+      return;
+    }
+    busy = true;
+    var wait = reduce ? 150 : Math.min(1400, 380 + Math.log10(Math.max(10, e.ms || 10)) * 180);
+    var card = $("next");
+    var actions = card.querySelector(".actions");
+    if (actions) actions.outerHTML = '<div class="running"><span class="spinner" aria-hidden="true"></span>Running ' + esc(e.tool) + " · the recorded call took " + dur(e.ms) + "</div>";
+    setTimeout(function () {
+      busy = false;
+      finish(e);
+      pos++;
+      renderNext();
+      scheduleAuto();
+    }, wait);
+  }
+  function finish(e, extra) {
+    var t = toolState[e.tool] || (toolState[e.tool] = { n: 0, err: false, ok: false });
+    t.n++;
+    if (e.isError) t.err = true; else t.ok = true;
+    markStage(e.tool, !e.isError);
+    if (e.tool === "verify_migration" && /FAILED/.test(e.text || "")) stageState[6] = "blocked";
+    if (e.tool === "apply_migration_patch" && e.isError && /ERESOLVE|rolled back/i.test(e.text || "")) stageState[5] = "blocked";
+    if (e.report) showReport(e.report, e.label ? e.label.replace("report snapshot: ", "") : e.report);
+    toolLog(e, extra);
+    announce(e.tool + (e.isError ? " refused" : " finished"));
+  }
+  function reply(text) {
+    var e = current(), msg = $("gate-msg");
+    var t = (text || "").trim();
+    if (!t) { msg.hidden = false; msg.textContent = "Type a reply first."; return; }
+    var list = entries();
+    var approved = t.toLowerCase() === "approved";
+    // Find the recorded approval call and (in the main run) the recorded refusal after this point.
+    var approvalHuman = -1, refusal = -1;
+    for (var k = pos; k < list.length; k++) {
+      if (approvalHuman < 0 && isApproval(list[k])) approvalHuman = k;
+      if (refusal < 0 && list[k].kind === "tool" && list[k].tool === "approve_migration_plan" && list[k].isError) refusal = k;
+    }
+    if (refusal < 0) {
+      for (var j = 0; j < list.length; j++) if (list[j].kind === "tool" && list[j].tool === "approve_migration_plan" && list[j].isError) refusal = j;
+    }
+    if (approved) {
+      humanLog("Replied to the plan: “" + t + "”", "Explicit human approval of the plan.");
+      var call = list[approvalHuman + 1];
+      if (isFirstReply(e)) addSkipped();
+      busy = true;
+      $("next").querySelector(".gate").outerHTML = '<div class="running"><span class="spinner" aria-hidden="true"></span>Running approve_migration_plan · the recorded call took ' + dur(call.ms) + "</div>";
+      setTimeout(function () { busy = false; finish(call); pos = approvalHuman + 2; renderNext(); }, reduce ? 150 : 700);
+      return;
+    }
+    humanLog("Replied to the plan: “" + t + "”", "Not an approval.");
+    if (refusal >= 0) {
+      var r = list[refusal];
+      finish(r, '<p class="recorded-note">Recorded refusal: in the run, the reply was “looks fine, but can you skip the tests?”. The server refuses every reply except “approved” the same way.</p>');
+    }
+    if (isFirstReply(e)) pos = approvalHuman; // the recorded run approved next; so will you, when you're ready
+    renderNext();
+    var m = $("gate-msg"); m.hidden = false;
+    m.textContent = refusal >= 0
+      ? "Refused. Nothing changed: no branch, no commit."
+      : "This session only recorded the approval. Reply “approved” to continue (the main run shows the server refusing anything else).";
+  }
+  function addSkipped() {
+    addLog('<div class="entry-head"><span class="entry-tool">approve_migration_plan</span><span class="pill skip">skipped</span></div><p class="recorded-note">You approved at the first reply, so the recorded refusal for “looks fine, but can you skip the tests?” isn’t part of your replay. <button type="button" class="more-btn" data-show-refusal>Show it anyway</button></p>');
+    var b = document.querySelector("[data-show-refusal]");
+    if (b) b.addEventListener("click", function () {
+      var list = entries();
+      for (var k = 0; k < list.length; k++) if (list[k].kind === "tool" && list[k].tool === "approve_migration_plan" && list[k].isError) { toolLog(list[k]); break; }
+      b.remove();
+    });
+  }
+
+  // ---- auto-play ----------------------------------------------------------
+  function toggleAuto() { auto = !auto; if (auto) { step(); } else stopAuto(); var b = $("auto"); if (b) b.textContent = auto ? "Pause" : "Auto-play"; }
+  function stopAuto() { auto = false; clearTimeout(autoTimer); }
+  function scheduleAuto() {
+    clearTimeout(autoTimer);
+    if (!auto) return;
+    var e = current();
+    if (!e || isFirstReply(e) || isApproval(e)) { stopAuto(); renderNext(); return; }
+    autoTimer = setTimeout(step, reduce ? 200 : 850);
+  }
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Enter" || ev.target.closest("input, textarea, button, a, summary, select")) return;
+    var r = $("run"); if (r) { ev.preventDefault(); step(); }
+  });
+
+  // ---- scenarios ----------------------------------------------------------
+  function reset() {
+    stopAuto(); busy = false; pos = 0; toolState = {}; stageState = STAGES.map(function (_, i) { return i === 0 ? "current" : ""; });
+    $("log").innerHTML = "";
+    clearReport();
+    if (scenario === "inputs") stageState = STAGES.map(function () { return ""; });
+    $("scenario-note").textContent = SCENARIOS[scenario].note;
+    renderNext();
+  }
+  function selectScenario(s) {
+    scenario = s;
+    document.querySelectorAll("[data-scenario]").forEach(function (b) { b.setAttribute("aria-selected", b.getAttribute("data-scenario") === s ? "true" : "false"); });
+    try { history.replaceState(null, "", s === "main" ? location.pathname : "#" + s); } catch (e) {}
+    reset();
+  }
+  document.querySelectorAll("[data-scenario]").forEach(function (b) { b.addEventListener("click", function () { selectScenario(b.getAttribute("data-scenario")); }); });
+  $("restart").addEventListener("click", reset);
+
+  fetch("/try/run.json").then(function (r) { return r.json(); }).then(function (d) {
+    data = d;
+    Object.keys(SCENARIOS).forEach(function (k) {
+      var sc = SCENARIOS[k], n = d.entries.slice(sc.from, sc.to + 1).filter(function (e) { return e.kind === "tool"; }).length;
+      $("c-" + k).textContent = n + " calls";
+    });
+    var h = location.hash.replace("#", "");
+    selectScenario(SCENARIOS[h] ? h : "main");
+    window.addEventListener("hashchange", function () {
+      var s = location.hash.replace("#", "");
+      if (SCENARIOS[s] && s !== scenario) selectScenario(s);
+    });
+  }).catch(function () {
+    $("next").innerHTML = '<p class="next-label">The recorded run could not be loaded. <a href="/reports/07-final.html">Open the final report</a> instead.</p>';
+  });
+})();
+</script>
+</body>
+</html>

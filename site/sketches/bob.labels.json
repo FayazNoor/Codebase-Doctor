@@ -1,0 +1,137 @@
+{
+ "w": 1600,
+ "h": 700,
+ "alt": "Hand-drawn architecture: on your machine, IBM Bob (the migration-doctor skill, Plan mode and the report artifact) talks to the Codebase Doctor MCP server over stdio through 12 tools; only the verified branch and the pull request go to GitHub.",
+ "labels": [
+  {
+   "x": 150,
+   "y": 84,
+   "w": 240,
+   "size": 34,
+   "color": "#6b6b74",
+   "weight": 600,
+   "align": "center",
+   "text": "your machine"
+  },
+  {
+   "x": 300,
+   "y": 150,
+   "w": 220,
+   "size": 36,
+   "color": "#2a2a30",
+   "weight": 700,
+   "align": "center",
+   "text": "IBM Bob"
+  },
+  {
+   "x": 445,
+   "y": 232,
+   "w": 370,
+   "size": 32,
+   "color": "#2a2a30",
+   "weight": 600,
+   "align": "center",
+   "text": "upgrade react to 18.3.1"
+  },
+  {
+   "x": 310,
+   "y": 342,
+   "w": 410,
+   "size": 32,
+   "color": "#8f5c00",
+   "weight": 600,
+   "align": "center",
+   "text": "plan ready — reply “approved”"
+  },
+  {
+   "x": 530,
+   "y": 452,
+   "w": 200,
+   "size": 34,
+   "color": "#2a2a30",
+   "weight": 700,
+   "align": "center",
+   "text": "approved"
+  },
+  {
+   "x": 370,
+   "y": 598,
+   "w": 620,
+   "size": 32,
+   "color": "#6b6b74",
+   "weight": 600,
+   "align": "center",
+   "text": "migration-doctor skill · Plan mode · report artifact"
+  },
+  {
+   "x": 760,
+   "y": 262,
+   "w": 220,
+   "size": 34,
+   "color": "#2a2a30",
+   "weight": 700,
+   "align": "center",
+   "text": "MCP · stdio"
+  },
+  {
+   "x": 760,
+   "y": 408,
+   "w": 200,
+   "size": 32,
+   "color": "#6b6b74",
+   "weight": 600,
+   "align": "center",
+   "text": "12 tools"
+  },
+  {
+   "x": 1020,
+   "y": 206,
+   "w": 300,
+   "size": 38,
+   "color": "#2a2a30",
+   "weight": 700,
+   "align": "center",
+   "text": "Codebase Doctor"
+  },
+  {
+   "x": 1020,
+   "y": 262,
+   "w": 300,
+   "size": 34,
+   "color": "#2a2a30",
+   "weight": 600,
+   "align": "center",
+   "text": "analyse · plan<br>apply · verify"
+  },
+  {
+   "x": 1060,
+   "y": 418,
+   "w": 200,
+   "size": 30,
+   "color": "#6b6b74",
+   "weight": 600,
+   "align": "center",
+   "text": "sealed<br>session"
+  },
+  {
+   "x": 1440,
+   "y": 318,
+   "w": 200,
+   "size": 40,
+   "color": "#2a2a30",
+   "weight": 700,
+   "align": "center",
+   "text": "GitHub"
+  },
+  {
+   "x": 1400,
+   "y": 450,
+   "w": 300,
+   "size": 32,
+   "color": "#1f8a4c",
+   "weight": 700,
+   "align": "center",
+   "text": "verified branch<br>+ pull request only"
+  }
+ ]
+}

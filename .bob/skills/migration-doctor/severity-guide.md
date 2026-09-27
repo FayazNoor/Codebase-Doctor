@@ -20,7 +20,11 @@ is used. Each breaking change in the knowledge base declares the exact
 `backend/src/knowledge/*.json`).
 
 For React, analysis covers the whole package family: `react`, `react-dom`,
-`react-dom/client`, `react-dom/test-utils`.
+`react-dom/client`, `react-dom/test-utils`, `react-dom/server`. Type positions
+count too (`const C: React.FC<P>`). A pattern can be limited to TypeScript files
+(`extensions`) or to test files (`testFilesOnly`); `api: "*"` means "any file
+that imports the module" and is used only for rules that genuinely affect every
+such file (e.g. Express 5 route syntax).
 
 ---
 
@@ -69,6 +73,14 @@ Files with no breaking-change evidence always score 0, whatever their name.
 | react-bc-5 | `render` from `react-dom` with ≥ 3 arguments | medium | manual |
 | react-bc-6 | `StrictMode` from `react` | low | manual review |
 | react-bc-7 | `unstable_batchedUpdates` from `react-dom` | low | manual |
+| react-bc-8 | `unmountComponentAtNode` from `react-dom` | medium | manual |
+| react-bc-9 | `unstable_renderSubtreeIntoContainer` from `react-dom` | medium | manual |
+| react-bc-10 | `renderToNodeStream` from `react-dom/server` | medium | manual |
+| react-bc-11 | `FC` / `FunctionComponent` from `react` in `.ts`/`.tsx` files | medium | manual review |
+| react-bc-12 | `render` (`react-dom`), `createRoot` (`react-dom/client`) or `act` (`react-dom/test-utils`) **in a test file** | low | manual review |
+
+Rules 8–12 come from the official "How to Upgrade to React 18" guide
+(deprecations, TypeScript definitions, testing environment).
 
 ---
 
@@ -80,10 +92,10 @@ Computed by `lib/risk.ts` and asserted exactly in `risk.test.ts`. Files marked
 | Pattern | Calculation | Score | Tier |
 |---|---|---|---|
 | Entry with `ReactDOM.render(<React.StrictMode>…)` (*fixture* `src/index.jsx`) | bc-1 40 + bc-6 10 + root bootstrap 30 | **80** | High |
-| Test with `act` from `react-dom/test-utils` + `ReactDOM.render` (*fixture* `src/App.test.jsx`) | bc-1 40 + bc-3 20 + test harness 20 | **80** | High |
+| Test with `act` from `react-dom/test-utils` + `ReactDOM.render` (*fixture* `src/App.test.jsx`) | bc-1 40 + bc-3 20 + bc-12 10 + test harness 20 | **90** | High |
 | `ReactDOM.hydrate(<App />, el)` (*fixture* `src/hydrate.jsx`) | bc-2 40 + root bootstrap 30 | **70** | High |
 | `ReactDOM.render` with a callback (3rd argument) | bc-1 40 + bc-5 20 + root bootstrap 30 | **90** | High |
-| Test that only imports/calls `act` from `react-dom/test-utils` | bc-3 20 + test harness 20 | **40** | Medium |
+| Test that only imports/calls `act` from `react-dom/test-utils` | bc-3 20 + bc-12 10 + test harness 20 | **50** | Medium |
 | `unstable_batchedUpdates` + `useState` (*fixture* `src/BatchedUpdatesExample.jsx`) | bc-4 20 + bc-7 10 | **30** | Low |
 | Component using only `useState` / `useEffect` (*fixture* `src/StableComponent.tsx`) | bc-4 20 (automatic-batching review) | **20** | Low |
 | `import ReactDOM from 'react-dom'` with no changed API used | — | **0** | None |

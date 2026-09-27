@@ -46,7 +46,22 @@ interface Binding {
   imported: string;
 }
 
-const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", "coverage", ".next", "out"]);
+const SKIP_DIRS = new Set([
+  "node_modules", ".git", "dist", "build", "coverage", ".next", "out",
+  ".cache", ".yarn", ".turbo", "storybook-static", ".docusaurus",
+]);
+
+/** Files larger than this are almost always generated bundles — never hand-written usages. */
+const MAX_FILE_BYTES = 1_000_000;
+
+export interface ScanStats {
+  /** Source files found by the walk (after SKIP_DIRS / extension filtering). */
+  filesScanned: number;
+  /** Files that mention a family package name and were parsed. */
+  filesParsed: number;
+  /** Files skipped because they exceed MAX_FILE_BYTES. */
+  filesTooLarge: number;
+}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -57,6 +72,15 @@ const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", "coverage", 
  * concrete API usage of those imports.
  */
 export function findDependencyUsages(opts: FindUsagesOptions): DependencyUsage[] {
+  return scanDependencyUsages(opts).usages;
+}
+
+/**
+ * Same as findDependencyUsages, plus scan statistics. Files are pre-filtered
+ * with a plain-text check for the package names, so only files that could
+ * import the family are handed to the TypeScript parser (large repos stay fast).
+ */
+export function scanDependencyUsages(opts: FindUsagesOptions): { usages: DependencyUsage[]; stats: ScanStats } {
   const {
     repoPath,
     extensions = ["ts", "tsx", "js", "jsx", "mjs", "cjs"],
@@ -75,14 +99,26 @@ export function findDependencyUsages(opts: FindUsagesOptions): DependencyUsage[]
   const files = opts.files
     ? opts.files.map((f) => path.join(repoPath, f)).filter((f) => fs.existsSync(f))
     : listSourceFiles(repoPath, extensions);
-  for (const f of files) project.addSourceFileAtPath(f);
+
+  const stats: ScanStats = { filesScanned: files.length, filesParsed: 0, filesTooLarge: 0 };
+  for (const f of files) {
+    if (fs.statSync(f).size > MAX_FILE_BYTES) {
+      stats.filesTooLarge++;
+      continue;
+    }
+    const text = fs.readFileSync(f, "utf8");
+    // Cheap pre-filter: a file that never mentions a quoted family package name cannot import it.
+    if (!packages.some((p) => text.includes(`'${p}`) || text.includes(`"${p}`) || text.includes(`\`${p}`))) continue;
+    project.createSourceFile(f, text, { overwrite: true });
+    stats.filesParsed++;
+  }
 
   const usages: DependencyUsage[] = [];
   for (const sourceFile of project.getSourceFiles()) {
     const rel = path.relative(repoPath, sourceFile.getFilePath()).split(path.sep).join("/");
     usages.push(...scanFile(sourceFile, rel, packages));
   }
-  return usages;
+  return { usages, stats };
 }
 
 /**
@@ -204,8 +240,18 @@ function scanFile(sourceFile: SourceFile, rel: string, packages: string[]): Depe
     if (Node.isImportClause(parent) || Node.isNamespaceImport(parent)) continue;
     // `</StrictMode>` / `</React.StrictMode>` — the opening tag is already counted.
     if (Node.isJsxClosingElement(parent) || Node.isJsxClosingElement(parent.getParent() ?? parent)) continue;
+    // Declaration names are not references: a class component's `render() {}`
+    // method, `const render = …`, a parameter or `<X render={…}>` attribute.
+    // (`{ render }` shorthand IS a reference, so it is not skipped.)
+    if (!Node.isShorthandPropertyAssignment(parent) && isDeclarationName(parent, id)) continue;
 
     if (binding.imported === "default" || binding.imported === "*") {
+      // Type positions: `React.FC<Props>` is a QualifiedName, not a property access.
+      if (Node.isQualifiedName(parent) && parent.getLeft() === id) {
+        const api = parent.getRight().getText();
+        record(parent, { kind: "api", module: binding.module, api, argCount: null, importSpecifier: `${id.getText()}.${api}` });
+        continue;
+      }
       // Only member access on a default/namespace import is evidence of a
       // specific API (ReactDOM.render, React.StrictMode, express.json ...).
       if (!Node.isPropertyAccessExpression(parent) || parent.getExpression() !== id) continue;
@@ -231,6 +277,26 @@ function scanFile(sourceFile: SourceFile, rel: string, packages: string[]): Depe
   return usages;
 }
 
+/** True when `id` is the declared name of `parent` (method, variable, parameter, JSX attribute …). */
+function isDeclarationName(parent: Node, id: Node): boolean {
+  if (
+    Node.isMethodDeclaration(parent) ||
+    Node.isPropertyDeclaration(parent) ||
+    Node.isGetAccessorDeclaration(parent) ||
+    Node.isSetAccessorDeclaration(parent) ||
+    Node.isFunctionDeclaration(parent) ||
+    Node.isClassDeclaration(parent) ||
+    Node.isVariableDeclaration(parent) ||
+    Node.isParameterDeclaration(parent) ||
+    Node.isPropertySignature(parent) ||
+    Node.isMethodSignature(parent) ||
+    Node.isJsxAttribute(parent)
+  ) {
+    return parent.getNameNode() === id;
+  }
+  return false;
+}
+
 /** Argument count if `node` is the callee of a call expression; else null. */
 function callArgCount(node: Node): number | null {
   const parent = node.getParent();
@@ -248,7 +314,7 @@ function matchesFamily(specifier: string, packages: string[]): boolean {
   return packages.some((p) => specifier === p || specifier.startsWith(`${p}/`));
 }
 
-function listSourceFiles(dir: string, extensions: string[]): string[] {
+export function listSourceFiles(dir: string, extensions: string[] = ["ts", "tsx", "js", "jsx", "mjs", "cjs"]): string[] {
   const extSet = new Set(extensions.map((e) => `.${e}`));
   const out: string[] = [];
   const walk = (current: string) => {

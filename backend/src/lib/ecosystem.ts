@@ -26,6 +26,22 @@ export interface KnowledgeBaseRef {
   toMajor: number;
 }
 
+/**
+ * A well-known companion library whose peer range must admit the target
+ * version. `upgradeTo` (when set) is applied by the dependency step and shown
+ * in the plan for approval; otherwise the plan adds a manual step.
+ */
+export interface PeerCompanion {
+  name: string;
+  /** Target major these facts apply to. */
+  targetMajor: number;
+  /** First version whose peer range supports the target, or null if none does. */
+  supportsFrom: string | null;
+  /** Range the dependency step upgrades to, or null (manual). */
+  upgradeTo: string | null;
+  note?: string;
+}
+
 export interface Ecosystem {
   id: string;
   /** Packages whose imports are analysed together (exact name or name/subpath). */
@@ -42,6 +58,8 @@ export interface Ecosystem {
   /** APIs whose call sites bootstrap the application root (risk-score context). */
   bootstrapApis: ApiRef[];
   knowledge: KnowledgeBaseRef[];
+  /** Curated companion libraries with known peer ranges (see lib/compat.ts). */
+  peerCompanions?: PeerCompanion[];
 }
 
 const ECOSYSTEMS: Ecosystem[] = [
@@ -57,6 +75,32 @@ const ECOSYSTEMS: Ecosystem[] = [
       { module: "react-dom/client", api: "hydrateRoot" },
     ],
     knowledge: [{ file: "react-17-to-18.json", fromMajor: 17, toMajor: 18 }],
+    peerCompanions: [
+      // RTL ≤ 12 declares peer react <18; 13+ renders with createRoot. 14.x is the last
+      // line that bundles @testing-library/dom (15+ makes it a separate peer).
+      { name: "@testing-library/react", targetMajor: 18, supportsFrom: "13.0.0", upgradeTo: "^14.3.1" },
+      {
+        name: "@testing-library/react-hooks",
+        targetMajor: 18,
+        supportsFrom: null,
+        upgradeTo: null,
+        note: "no React 18 release; use renderHook from @testing-library/react ≥ 13.1 and remove it",
+      },
+      {
+        name: "enzyme-adapter-react-16",
+        targetMajor: 18,
+        supportsFrom: null,
+        upgradeTo: null,
+        note: "Enzyme has no official React 18 adapter; migrate these tests to React Testing Library",
+      },
+      {
+        name: "@wojtekmaj/enzyme-adapter-react-17",
+        targetMajor: 18,
+        supportsFrom: null,
+        upgradeTo: null,
+        note: "Enzyme has no official React 18 adapter; migrate these tests to React Testing Library",
+      },
+    ],
   },
   {
     id: "express",
@@ -84,6 +128,12 @@ export function resolveEcosystem(dependency: string): Ecosystem {
     bootstrapApis: [],
     knowledge: [],
   };
+}
+
+/** Curated companions that apply to upgrading `eco` to `toVersion`. */
+export function companionsFor(eco: Ecosystem, toVersion: string): PeerCompanion[] {
+  const major = parseMajor(toVersion);
+  return (eco.peerCompanions ?? []).filter((c) => c.targetMajor === major);
 }
 
 /**

@@ -18,9 +18,14 @@ export type SessionPhase =
   | "complete";
 
 export interface RepoInfo {
+  /** What the user supplied: a GitHub URL or an absolute local path. */
   url: string;
+  /** "github" — cloned from GitHub; "local" — cloned from a local git repository. */
+  source?: "github" | "local";
+  /** GitHub owner/name. For a local repo without a GitHub remote, owner is "" and PRs are unavailable. */
   owner: string;
   name: string;
+  /** Session-owned clone the tools work in (never the user's own working tree). */
   localPath: string;
   defaultBranch: string;
 }
@@ -88,6 +93,37 @@ export interface BlastRadiusReport {
   topAffectedFiles: Array<{ file: string; riskScore: number; reason: string }>;
 }
 
+/** A declared package whose peerDependencies do not accept the upgrade target. */
+export interface PeerConflict {
+  /** Package declaring the incompatible peer range, e.g. "react-redux". */
+  name: string;
+  /** Version the range was read from (lockfile / node_modules / registry), or the declared range. */
+  version: string;
+  /** package.json section declaring it (null when only transitive). */
+  section: "dependencies" | "devDependencies" | null;
+  /** Peer package, e.g. "react". */
+  peer: string;
+  /** The incompatible peer range, e.g. "^0.14.0 || ^15.0.0 || ^16.0.0". */
+  range: string;
+  /** Where the peer range came from. */
+  source: "lockfile" | "node_modules" | "registry" | "known";
+  /** Suggested compatible range, when one is known (e.g. "^14.3.1"). */
+  suggestion: string | null;
+  /** True when the dependency step upgrades it automatically (curated, well-known companion). */
+  autoUpgrade: boolean;
+}
+
+export interface CompatReport {
+  /** Whether peer ranges could be checked at all. */
+  checked: boolean;
+  /** How they were checked, e.g. "package-lock.json (lockfileVersion 3)". */
+  method: string;
+  packagesChecked: number;
+  conflicts: PeerConflict[];
+  /** Caveat shown to the user (e.g. "offline — registry lookup skipped"). */
+  note: string | null;
+}
+
 export interface AnalysisResult {
   repoLanguage: "typescript" | "javascript" | "mixed";
   packageManager: "npm" | "yarn" | "pnpm";
@@ -97,6 +133,12 @@ export interface AnalysisResult {
   testCommand: string | null;
   dependencyUsages: DependencyUsage[];
   blastRadius: BlastRadiusReport | null;
+  /** Source files scanned (after skipping node_modules, build output, etc.). */
+  filesScanned?: number;
+  /** Peer-dependency compatibility of declared packages with the target version. */
+  compat?: CompatReport;
+  /** Analysis caveats (multiple lockfiles, target not newer than current, ...). */
+  warnings?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -109,9 +151,17 @@ export interface AnalysisResult {
  */
 export interface DetectPattern {
   module: string;
+  /**
+   * Exported API name, or "*" to match any import of `module` (for rules
+   * that affect every file using the package, e.g. Express route syntax).
+   */
   api: string;
   /** Only match call sites with at least this many arguments. */
   minArgs?: number;
+  /** Only match in files with one of these extensions (e.g. [".ts", ".tsx"]). */
+  extensions?: string[];
+  /** Only match in test files (*.test.*, *.spec.*, __tests__/). */
+  testFilesOnly?: boolean;
 }
 
 export interface BreakingChange {
@@ -163,12 +213,17 @@ export interface MigrationRequirements {
 
 export type ChangeType = "codemod" | "manual" | "config" | "test";
 
+/** Why a package is changed by the dependency step. */
+export type PackageChangeReason = "target" | "companion" | "types" | "peer-compat";
+
 /**
  * Honest step lifecycle:
  *  pending          — not executed yet
  *  applied          — the tool changed code/config and verified no evidence remains
  *  manual_required  — needs human action (manual step, or automation left residue)
  *  completed_manual — a human/Bob made (or reviewed) the change and recorded it
+ *  skipped          — the user explicitly deferred the step (reason recorded); still open work
+ *  failed           — execution failed (e.g. install error); changes were rolled back; retryable
  *  not_applicable   — nothing to do for this repository
  */
 export type StepStatus =
@@ -176,6 +231,8 @@ export type StepStatus =
   | "applied"
   | "manual_required"
   | "completed_manual"
+  | "skipped"
+  | "failed"
   | "not_applicable";
 
 export interface PackageChange {
@@ -183,6 +240,8 @@ export interface PackageChange {
   section: "dependencies" | "devDependencies";
   from: string;
   to: string;
+  /** Absent in plans created before this field existed. */
+  reason?: PackageChangeReason;
 }
 
 export interface StepOutcome {
@@ -198,6 +257,10 @@ export interface StepOutcome {
   residual?: string[];
   /** Installed versions read from node_modules after the dependency step. */
   installedVersions?: Record<string, string>;
+  /** Tail of the failing command's output (status "failed"). */
+  errorOutput?: string;
+  /** Number of execution attempts (retries after "failed" increment it). */
+  attempts?: number;
 }
 
 export interface MigrationStep {
@@ -264,6 +327,11 @@ export interface ChecksResult {
   timestamp: string;
   /** git HEAD the checks ran against (null if not a git repo). */
   headCommit: string | null;
+  /**
+   * Tracked files with uncommitted changes when the checks ran. Checks on a
+   * dirty tree do not verify HEAD, so create_pull_request refuses them.
+   */
+  uncommittedFiles?: string[];
   /** Installed dependency versions match the upgrade target. */
   dependencies: DependencyCheck;
   lint: CheckResult;
@@ -275,4 +343,15 @@ export interface ChecksResult {
    */
   allPassed: boolean;
   failureSummary: string | null;
+}
+
+/** One verify_migration run, kept so the fix loop's history survives re-runs. */
+export interface ChecksHistoryEntry {
+  iteration: number;
+  timestamp: string;
+  headCommit: string | null;
+  allPassed: boolean;
+  statuses: { dependencies: CheckStatus; lint: CheckStatus; test: CheckStatus; build: CheckStatus };
+  failedTests: string[];
+  uncommitted: boolean;
 }

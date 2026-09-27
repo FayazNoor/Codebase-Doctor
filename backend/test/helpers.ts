@@ -82,9 +82,9 @@ export interface FakeInstallOptions {
  * and rewrites package-lock.json root deps from package.json (like npm would).
  */
 export function fakeInstaller(opts: FakeInstallOptions = {}) {
-  const calls: Array<{ cmd: string; args: string[]; cwd: string }> = [];
-  const runner: CommandRunner = (cmd, args, cwd) => {
-    calls.push({ cmd, args, cwd });
+  const calls: Array<{ cmd: string; args: string[]; cwd: string; env?: NodeJS.ProcessEnv }> = [];
+  const runner: CommandRunner = (cmd, args, cwd, env) => {
+    calls.push(env ? { cmd, args, cwd, env } : { cmd, args, cwd });
     if (opts.fail) return { ok: false, output: "npm ERR! code ERESOLVE\nnpm ERR! peer react@\"<18\" from @testing-library/react@12.1.5" };
     const pkg = JSON.parse(fs.readFileSync(path.join(cwd, "package.json"), "utf8")) as {
       dependencies?: Record<string, string>;

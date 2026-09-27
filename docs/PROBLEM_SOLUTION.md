@@ -56,18 +56,26 @@ The migration report generated at the end of each session separates:
 - **Not measured:** Bobcoin consumption and accuracy — the server cannot observe them, so the
   report says "not measured" instead of inventing numbers
 
-### Demo numbers — targets only, not results
+### Demo numbers — measured on the demo app (script-driven run, not a live Bob run)
 
-No real end-to-end demo run has been completed yet, so there are no measured demo numbers.
-The demo target repository also still needs preparation (see `docs/target-repo.md`).
-After the real run, replace this section with the values from its migration report.
+Recorded on 2026-09-26 by `backend/scripts/e2e-demo.mjs`: the real MCP server over stdio, driving
+`examples/react17-demo-app`. The install, lint, test and build were real; the PR went to a local sandbox, not
+github.com. Full transcript and report snapshots: `docs/evidence/e2e-run/`. A live Bob run has not been recorded
+with this version.
 
-| Metric | Status |
-|---|---|
-| Files affected | to be measured |
-| Codebase Doctor wall-clock time | to be measured (target: ≤ 7 minutes for the live demo) |
-| Manual effort | estimate only (affected files × 30 min) |
-| Time saved | estimate only |
+| Metric | Value | Kind |
+|---|---|---|
+| Files using react / react-dom | 11 of 13 source files | measured |
+| Files with breaking-change evidence | 9 (4 high-risk) | measured |
+| Breaking changes applied to this repo | 8 (3 automated, 5 manual/review) | measured |
+| Peer conflicts caught before install | 1 (`@testing-library/react@12`, upgraded to ^14.3.1) | measured |
+| Verification | #1 failed (lint + 1 test), #2 passed after the recorded manual fixes | measured |
+| Files changed on the migration branch | 9 | measured |
+| Wall-clock for the whole workflow | 400 s in the recorded run, which shared the machine with other workloads (139–400 s across runs; dominated by `npm install`) | measured — script-driven, excludes human/Bob thinking time |
+| Manual effort | ~4.5 h (9 affected files × 30 min) | estimate only |
+| Time saved | estimate only (manual-effort estimate − measured elapsed time) | estimate only |
+| Bobcoin usage, accuracy | not measured | — |
+
 ---
 
 ## Why IBM Bob 2.0?

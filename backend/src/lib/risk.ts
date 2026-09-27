@@ -14,7 +14,7 @@
 
 import type { ApiRef } from "./ecosystem.js";
 import { isTestFile } from "./ast.js";
-import type { DependencyUsage, BlastRadiusReport, BreakingChange } from "../types.js";
+import type { DependencyUsage, BlastRadiusReport, BreakingChange, DetectPattern } from "../types.js";
 
 // ---------------------------------------------------------------------------
 // Scoring constants (mirrors severity-guide.md)
@@ -51,23 +51,35 @@ export interface FileScore {
  * for. Import records are never evidence on their own.
  */
 export function matchBreakingChanges(usage: DependencyUsage, breakingChanges: BreakingChange[]): string[] {
-  if (usage.kind !== "api" || !usage.api) return [];
   const ids: string[] = [];
   for (const bc of breakingChanges) {
     if (bc.detect && bc.detect.length > 0) {
-      const hit = bc.detect.some(
-        (p) =>
-          p.module === usage.module &&
-          p.api === usage.api &&
-          (p.minArgs === undefined || (usage.argCount !== null && usage.argCount >= p.minArgs))
-      );
-      if (hit) ids.push(bc.id);
-    } else if (bc.affectedApis.includes(usage.api)) {
+      if (bc.detect.some((p) => patternMatches(p, usage))) ids.push(bc.id);
+    } else if (usage.kind === "api" && usage.api && bc.affectedApis.includes(usage.api)) {
       // Fallback for rules without machine patterns (docs-only / other ecosystems).
       ids.push(bc.id);
     }
   }
   return ids;
+}
+
+/**
+ * One detect pattern against one usage. `api: "*"` matches the import record
+ * itself (the rule affects every file that uses the package); every other
+ * pattern needs a concrete API usage. Import records are otherwise never
+ * evidence on their own.
+ */
+function patternMatches(p: DetectPattern, usage: DependencyUsage): boolean {
+  if (p.module !== usage.module) return false;
+  if (p.api === "*") {
+    if (usage.kind !== "import") return false;
+  } else if (usage.kind !== "api" || p.api !== usage.api) {
+    return false;
+  }
+  if (p.minArgs !== undefined && (usage.argCount === null || usage.argCount < p.minArgs)) return false;
+  if (p.extensions && !p.extensions.some((ext) => usage.file.endsWith(ext))) return false;
+  if (p.testFilesOnly && !isTestFile(usage.file)) return false;
+  return true;
 }
 
 // ---------------------------------------------------------------------------

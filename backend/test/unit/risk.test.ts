@@ -45,8 +45,11 @@ describe("fixture reference scores (severity-guide.md)", () => {
     expect(score("src/hydrate.jsx")).toBe(70);
   });
 
-  it("test file with act from react-dom/test-utils + ReactDOM.render = 80 (bc-1 40 + bc-3 20 + test harness 20)", () => {
-    expect(score("src/App.test.jsx")).toBe(80);
+  it("test file with act from react-dom/test-utils + ReactDOM.render = 90 (bc-1 40 + bc-3 20 + bc-12 10 + test harness 20)", () => {
+    expect(score("src/App.test.jsx")).toBe(90);
+    expect(report.topAffectedFiles.find((f) => f.file === "src/App.test.jsx")!.reason).toBe(
+      "react-bc-1 +40, react-bc-3 +20, react-bc-12 +10, test harness +20"
+    );
   });
 
   it("unstable_batchedUpdates + useState = 30 (bc-4 20 + bc-7 10)", () => {
@@ -87,13 +90,13 @@ describe("scoreFile — evidence, not imports", () => {
     expect(scoreSource("src/Button.jsx", "import React from 'react';\nexport default () => <button />;\n").riskScore).toBe(0);
   });
 
-  it("act from react-dom/test-utils in a test = 40 (bc-3 20 + test harness 20)", () => {
+  it("act from react-dom/test-utils in a test = 50 (bc-3 20 + bc-12 10 + test harness 20)", () => {
     const r = scoreSource(
       "src/Button.test.jsx",
       "import { act } from 'react-dom/test-utils';\nact(() => {});\n"
     );
-    expect(r.riskScore).toBe(40);
-    expect(r.breakingChangeIds).toEqual(["react-bc-3"]);
+    expect(r.riskScore).toBe(50);
+    expect(r.breakingChangeIds).toEqual(["react-bc-3", "react-bc-12"]);
   });
 
   it("act imported from 'react' (already migrated) is not bc-3 evidence", () => {

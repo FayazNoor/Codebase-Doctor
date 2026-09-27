@@ -31,8 +31,8 @@ describe("planPackageChanges", () => {
   it("upgrades react and react-dom together and leaves unrelated packages alone", () => {
     const changes = planPackageChanges(FIXTURE_SRC, "react", "18.3.1");
     expect(changes).toEqual([
-      { name: "react", section: "dependencies", from: "^17.0.2", to: "^18.3.1" },
-      { name: "react-dom", section: "dependencies", from: "^17.0.2", to: "^18.3.1" },
+      { name: "react", section: "dependencies", from: "^17.0.2", to: "^18.3.1", reason: "target" },
+      { name: "react-dom", section: "dependencies", from: "^17.0.2", to: "^18.3.1", reason: "companion" },
     ]);
   });
 
@@ -74,7 +74,7 @@ describe("runInstall", () => {
     setCommandRunner(fake.runner);
     const r = runInstall(dir, "npm");
     expect(r.ok).toBe(true);
-    expect(r.command).toBe("npm install");
+    expect(r.command).toBe("npm install --no-audit --no-fund");
     expect(r.lockfile).toBe("package-lock.json");
   });
 
@@ -83,18 +83,19 @@ describe("runInstall", () => {
     fs.rmSync(path.join(dir, "package-lock.json"));
     const fake = fakeInstaller();
     setCommandRunner(fake.runner);
-    expect(runInstall(dir, "npm").command).toBe("npm install --no-package-lock");
+    expect(runInstall(dir, "npm").command).toBe("npm install --no-audit --no-fund --no-package-lock");
     expect(fs.existsSync(path.join(dir, "package-lock.json"))).toBe(false);
   });
 
-  it("uses the repo's package manager", () => {
+  it("uses the repo's package manager and never a frozen/immutable install (CI=true would freeze it)", () => {
     const dir = fixtureCopy();
     const fake = fakeInstaller();
     setCommandRunner(fake.runner);
     fs.writeFileSync(path.join(dir, "yarn.lock"), "");
     expect(runInstall(dir, "yarn").command).toBe("yarn install");
+    expect(fake.calls.at(-1)!.env).toEqual({ YARN_ENABLE_IMMUTABLE_INSTALLS: "false" });
     fs.writeFileSync(path.join(dir, "pnpm-lock.yaml"), "");
-    expect(runInstall(dir, "pnpm").command).toBe("pnpm install");
+    expect(runInstall(dir, "pnpm").command).toBe("pnpm install --no-frozen-lockfile");
   });
 
   it("reports install failures", () => {

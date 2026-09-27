@@ -1,47 +1,80 @@
 [
   {
     "id": "express-bc-1",
-    "description": "express.urlencoded() and express.json() no longer use body-parser implicitly — configure explicitly",
-    "affectedApis": ["urlencoded", "json"],
+    "description": "Route path syntax changed (path-to-regexp 8): wildcards must be named (/*splat), optional segments use braces ({/:id}), and regular-expression characters in string paths are no longer supported",
+    "affectedApis": ["app.get", "app.use", "Router"],
     "affectedFiles": [],
     "automatable": false,
-    "codemods": [],
-    "severity": "medium"
+    "codemods": ["@expressjs/codemod"],
+    "severity": "high",
+    "detect": [{ "module": "express", "api": "*" }],
+    "resolution": "review",
+    "docsKeywords": ["path-to-regexp", "Path route matching syntax", "wildcard"],
+    "manualAction": "Search route strings for `*`, `?`, `+`, `(` and `)`. Rename bare wildcards (`/*` → `/*splat`, access via req.params.splat), turn `/:id?` into `{/:id}`, and replace regex-style paths with explicit routes or RegExp objects."
   },
   {
     "id": "express-bc-2",
-    "description": "Router.param() callback signature changed — (req, res, next, value, name) instead of (req, res, next, id)",
-    "affectedApis": ["param"],
+    "description": "Removed request/response/app signatures: app.del(), req.param(), res.json(obj, status), res.send(body, status), res.send(status), res.redirect(url, status), res.sendfile() and the 'back' redirect/location",
+    "affectedApis": ["app.del", "req.param", "res.json", "res.send", "res.redirect", "res.sendfile"],
     "affectedFiles": [],
     "automatable": false,
-    "codemods": [],
-    "severity": "high"
+    "codemods": ["@expressjs/codemod"],
+    "severity": "high",
+    "detect": [{ "module": "express", "api": "*" }],
+    "resolution": "review",
+    "docsKeywords": ["app.del", "req.param", "res.sendfile", "res.redirect('back')"],
+    "manualAction": "Use app.delete(), req.params / req.body / req.query, res.status(code).json(obj) / .send(body), res.sendStatus(code), res.redirect(status, url), res.sendFile(), and req.get('Referrer') || '/' instead of 'back'."
   },
   {
     "id": "express-bc-3",
-    "description": "express.static() etag option now defaults to true — verify caching behaviour in tests",
-    "affectedApis": ["static"],
+    "description": "express.urlencoded(): the `extended` option now defaults to false (querystring instead of qs parsing)",
+    "affectedApis": ["express.urlencoded"],
     "affectedFiles": [],
     "automatable": false,
     "codemods": [],
-    "severity": "low"
+    "severity": "medium",
+    "detect": [{ "module": "express", "api": "urlencoded" }],
+    "resolution": "review",
+    "docsKeywords": ["urlencoded", "extended"],
+    "manualAction": "Pass `{ extended: true }` explicitly where nested form bodies (a[b]=c) are expected."
   },
   {
     "id": "express-bc-4",
-    "description": "res.jsonp() no longer accepts arbitrary callback names by default — must configure jsonp callback name",
-    "affectedApis": ["jsonp"],
+    "description": "express.static(): `dotfiles` now defaults to \"ignore\" and express.static.mime was removed",
+    "affectedApis": ["express.static"],
     "affectedFiles": [],
     "automatable": false,
     "codemods": [],
-    "severity": "medium"
+    "severity": "medium",
+    "detect": [{ "module": "express", "api": "static" }],
+    "resolution": "review",
+    "docsKeywords": ["express.static", "dotfiles", "express.static.mime"],
+    "manualAction": "Set `dotfiles: \"allow\"` where dotfiles (e.g. /.well-known) must be served, and use the mime-types package instead of express.static.mime."
   },
   {
     "id": "express-bc-5",
-    "description": "app.router is removed — mount routers using app.use(router) explicitly",
-    "affectedApis": ["router"],
+    "description": "req.body is undefined (not {}) when no body parser ran, req.query is read-only, and the default query parser changed from \"extended\" to \"simple\"",
+    "affectedApis": ["req.body", "req.query"],
     "affectedFiles": [],
     "automatable": false,
     "codemods": [],
-    "severity": "high"
+    "severity": "medium",
+    "detect": [{ "module": "express", "api": "*" }],
+    "resolution": "review",
+    "docsKeywords": ["req.body", "req.query", "query parser"],
+    "manualAction": "Guard req.body access, stop assigning to req.query, and set `app.set('query parser', 'extended')` if nested query strings (a[b]=c) are relied on."
+  },
+  {
+    "id": "express-bc-6",
+    "description": "Rejected promises from async middleware/handlers are now forwarded to error-handling middleware",
+    "affectedApis": ["async handlers"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "low",
+    "detect": [{ "module": "express", "api": "*" }],
+    "resolution": "review",
+    "docsKeywords": ["rejected promises", "async"],
+    "manualAction": "Remove express-async-errors / manual try-catch wrappers that only existed to call next(err), and check that error middleware handles the errors now routed to it."
   }
 ]

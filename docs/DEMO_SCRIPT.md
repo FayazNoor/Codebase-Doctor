@@ -1,11 +1,13 @@
 # Demo Script
 
 **Total target time: 7 minutes**  
-**Demo migration:** React 17 → 18 — target repository **not ready yet** (see [`target-repo.md`](target-repo.md);
-the planned fork `FayazNoor/react-redux-realworld-example-app` does not exist yet and the source repo is on React 16).
+**Demo migration:** React 17 → 18 on [`examples/react17-demo-app`](../examples/react17-demo-app/README.md)
+pushed to a GitHub repository you own (see [`target-repo.md`](target-repo.md)).
 
-> **All numbers in this script are placeholders or targets, not results.** No real end-to-end demo
-> run has happened yet. Replace every `[measured: …]` with the value from the real run's report.
+> **Numbers:** a script-driven end-to-end run of the same app is recorded in
+> [`evidence/e2e-run/`](evidence/e2e-run/) (real install, real lint/test/build; PR against a local sandbox).
+> The live Bob run has not been recorded yet — replace every `[measured: …]` with the value from the live run's
+> report, and only claim a duration you measured.
 
 ---
 
@@ -13,8 +15,8 @@ the planned fork `FayazNoor/react-redux-realworld-example-app` does not exist ye
 
 - [ ] Bob IDE open, **Agent mode** active
 - [ ] `codebase-doctor` MCP server shows connected in Bob's MCP server list
-- [ ] `GITHUB_TOKEN` exported in terminal (PAT with `repo` scope)
-- [ ] Demo repository prepared per `docs/target-repo.md` (fork created, baseline green) — migration branch deleted
+- [ ] `GITHUB_TOKEN` (PAT with `repo` scope) in `.bob/mcp.json` — only needed for the PR step
+- [ ] Demo repository prepared per `docs/target-repo.md` (baseline green) — no leftover migration branch / PR
 - [ ] React 18 migration guide PDF downloaded ([react.dev](https://react.dev/blog/2022/03/08/react-18-upgrade-guide))
 - [ ] Run `analyze_dependency_usage` once before demo so clone is cached (speeds up live run)
 - [ ] Screen recording software running
@@ -36,7 +38,7 @@ the planned fork `FayazNoor/react-redux-realworld-example-app` does not exist ye
 
 **Type into Bob Agent mode chat:**
 ```
-Upgrade react from 17 to 18.3.1 in <prepared demo repo URL>
+Upgrade react from 17 to 18.3.1 in https://github.com/<you>/pantry-list
 Here are the React 18 migration docs: @react18-migration-guide.pdf
 ```
 
@@ -100,8 +102,10 @@ Here are the React 18 migration docs: @react18-migration-guide.pdf
 
 **Say (adapt to what actually happens):**
 > "`verify_migration` first checks that react and react-dom 18 are really installed, then runs lint,
-> test, and build. [If a check fails:] A subagent diagnoses the failure and proposes a minimal fix;
-> Bob re-runs verification. [Only claim a fix loop if one actually happened on camera.]"
+> test, and build. [On the demo app the first run fails for real: ESLint flags `unmountComponentAtNode` and the
+> SyncStatus test depends on an intermediate render that React 18 batches away.] A subagent diagnoses the
+> failure and proposes a minimal fix; Bob records it on the step and re-runs verification.
+> [Only claim a fix loop if one actually happened on camera.]"
 
 **Screenshot:** Failed verification → subagent diagnosis → passing verification
 
@@ -117,7 +121,7 @@ Here are the React 18 migration docs: @react18-migration-guide.pdf
 > human — in [measured: N] minutes, against a manual-effort *estimate* of [estimate: N] hours.
 > `create_pull_request` only opens the PR because verification passed on this exact commit."
 
-**Screenshot:** HTML artifact (productivity metrics table) + GitHub PR page
+**Screenshot:** HTML artifact (metrics labelled measured / estimate / not measured) + GitHub PR page
 
 **Closing:**
 > "One prompt. React 17 to 18 — verified, reviewed, and PR'd with IBM Bob 2.0,
@@ -129,7 +133,7 @@ Here are the React 18 migration docs: @react18-migration-guide.pdf
 
 | Problem | Recovery |
 |---|---|
-| MCP server crashes | Session state is on disk — restart server, re-run the last tool |
+| MCP server crashes / Bob loses context | Session state is on disk — restart, call `get_session_status` for the next action |
 | GitHub API fails | Show blast radius report + migration plan; skip PR creation |
 | Demo runs long | Cut implementation narration; just show the todo list ticking |
 | Subagent takes too long | Narrate what it's doing; the wait reinforces "real work is happening" |
@@ -146,5 +150,5 @@ Here are the React 18 migration docs: @react18-migration-guide.pdf
 | 4 | Plan mode badge + migration plan + approval recorded | Plan mode + approval gate |
 | 5 | Todo list ticking off during implementation | Agent mode + todo list |
 | 6 | verify_migration result (fix loop only if it really occurs) | Iterative loop + subagent |
-| 7 | HTML artifact with productivity metrics | HTML artifact |
+| 7 | HTML artifact with labelled metrics (measured / estimate / not measured) | HTML artifact |
 | 8 | Live GitHub PR | End-to-end completion |

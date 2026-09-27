@@ -98,3 +98,25 @@ Update this file **immediately after each session** with the real date and the s
   - 141/141 tests passing, build/typecheck/lint green
   - Commit `caf110b` on `main`
   - Demo status: **GO** on all 15 checklist items (prerequisite: set fresh PAT in `.bob/mcp.json`)
+
+---
+
+### Correction note (added 2026-09-26 during the final audit — not a Bob session)
+
+This note corrects the record; the session entries above are left as written.
+
+- **The dry-run report did not show a measured verification.** `docs/checks-result-reconstructed.json` was
+  written by hand ("reconstructed"), not by `verify_migration`. It cannot have come from the tool: it has a
+  `skipped` test with a non-null command and output strings the tool never produces. `docs/migration-report-react18.html`
+  was generated from it, so its "✅ PASSED" line was not a measured result. Both files were **removed** from `docs/`
+  during the final audit; they remain in git history (last present in commit `49677a8`). The same dry run also committed its changes as one commit
+  and set the session phase to `verified` (not a valid phase) by editing session files directly.
+- **Fix in the product:** session files are now HMAC-sealed. A hand-written or edited `checks-result.json` is rejected
+  as untrusted by `create_pull_request`, `get_session_status` and the report, and the skill forbids editing state files.
+- **"Leaked PATs" (entry above):** the values removed from `.env.example` and `.bob/mcp.example.json` in `caf110b`
+  were placeholders (`<your-github-pat-with-repo-scope>`, `ghp_REPLACE…`), not real tokens. No real token was found
+  in any text file in git history. **However, a real GitHub token was visible in the committed screenshot
+  `07-checklist-for-live-demo.png` (row 13).** It was redacted in the working tree on 2026-09-26, but the original
+  image remains in git history, so the token must be revoked on GitHub.
+- A genuine end-to-end run on a React 17 app (real install, real lint/test/build, verification failing and then
+  passing) is recorded in `docs/evidence/e2e-run/`.

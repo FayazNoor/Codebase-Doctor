@@ -1,42 +1,27 @@
 # Frontend
 
-> **Status: out of scope for the hackathon — post-hackathon future work.**
-> The Bob IDE is the user-facing interface for Codebase Doctor. Nothing in this directory is
-> required for the MVP or the demo; it only records the planned web UI.
+> **Status: intentionally not built.** Codebase Doctor is Bob-native: **IBM Bob IDE is the user interface.**
 
----
+The product's visual surfaces are:
 
-## Planned UI (post-hackathon)
-
-A React + Vite web app that wraps the same MCP tools behind a browser-based interface:
-
-| Component | Purpose |
+| Surface | Where it comes from |
 |---|---|
-| `MigrationWizard` | 4-step form: repo URL → dependency → version → optional PDF |
-| `BlastRadiusChart` | D3 treemap of files coloured by risk score |
-| `MigrationPlanReview` | Approval gate — shows ordered steps before implementation starts |
-| `ProgressDashboard` | Live todo list during implementation (SSE stream from backend) |
-| `MigrationReport` | Before/after report with productivity metrics |
+| Conversation, plan approval, todo list, subagents | Bob IDE, driven by the `migration-doctor` skill (`.bob/skills/`) |
+| **Migration report** — stage tracker, risk ranking, breaking changes, plan, per-file evidence, diffs, verification history, remaining work, metrics | `generate_report` (`format: "html"`), rendered by Bob with `create_html_artifact`; the same HTML opens in any browser (light/dark, responsive, accessible) |
+| Pull request body | `generate_report` (`format: "markdown"`), posted by `create_pull_request` |
 
----
+A separate web app would duplicate Bob's role, so it was deliberately left out. See
+[`features-screen-shots/`](../features-screen-shots/README.md) for the report at every stage. The MCP server is
+also exercised through the official MCP Inspector.
 
-## Integration Points (when built)
+## If a web UI is built later
 
-- **Backend:** `POST /api/session/start` → wraps `analyze_dependency_usage` + `load_migration_requirements`
-- **Backend:** `POST /api/session/:id/approve` → wraps `approve_migration_plan`
-- **Backend:** `GET /api/session/:id/progress` → SSE stream of `apply_migration_patch` events
-- **Backend:** `GET /api/session/:id/report` → final report JSON
+It should be a thin client over the same MCP server (for example over an HTTP/SSE MCP transport), and it must keep
+the backend-enforced approval gate. Plausible screens:
 
----
-
-## For the Hackathon Demo
-
-Use Bob IDE directly. Open Agent mode and run:
-
-```
-Upgrade react from 17 to 18.3.1 in <prepared demo repo URL>
-```
-
-The demo repository still needs preparation — see [`docs/target-repo.md`](../docs/target-repo.md).
-
-See [`docs/DEMO_SCRIPT.md`](../docs/DEMO_SCRIPT.md) for the full demo walkthrough.
+| Screen | Backed by |
+|---|---|
+| Start a migration (repo, dependency, version, optional docs) | `analyze_dependency_usage`, `load_migration_requirements` |
+| Plan review + approve | `generate_migration_plan`, `approve_migration_plan` |
+| Progress | `get_session_status`, `apply_migration_patch` |
+| Report | `generate_report` (the existing HTML) |

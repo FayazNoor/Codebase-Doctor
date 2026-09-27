@@ -22,3 +22,29 @@ Thumbs.db
 
 # Test coverage
 coverage/
+
+# Vercel CLI project link (site/)
+.vercel/
+
+# End-to-end demo output (backend/scripts/e2e-demo.mjs)
+.demo-run/
+.demo-run.log
+.capture.log
+
+# Demo video pipeline (video/): dependencies and regenerable media
+video/node_modules/
+video/remotion/node_modules/
+video/out/
+video/capture/shots/
+video/capture/shots.log
+video/audio/out/
+video/voice/out/*.wav
+video/remotion/public/sfx/
+video/deliverables/*.mp4
+video/deliverables/audio/*.wav
+video/npm-*.log
+video/tools/__pycache__/
+video/voice/__pycache__/
+
+# Demo video master (881 MB, over GitHub's 100 MB file limit); the site uses site/media/codebase-doctor-demo.mp4
+videos/*.mp4

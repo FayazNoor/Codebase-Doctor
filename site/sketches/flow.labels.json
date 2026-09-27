@@ -1,0 +1,157 @@
+{
+ "w": 1600,
+ "h": 820,
+ "alt": "Hand-drawn flow: you ask in IBM Bob, Codebase Doctor analyses every usage and writes a ten-step plan, then a locked gate waits for you to type approved; after that it applies one commit per step, verifies with your own lint, tests and build, and opens a pull request only when the checks pass.",
+ "labels": [
+  {
+   "x": 175,
+   "y": 142,
+   "w": 250,
+   "size": 36,
+   "color": "#2a2a30",
+   "weight": 600,
+   "align": "center",
+   "text": "upgrade react<br>to 18.3.1"
+  },
+  {
+   "x": 175,
+   "y": 300,
+   "w": 300,
+   "size": 40,
+   "color": "#2a2a30",
+   "weight": 700,
+   "align": "center",
+   "text": "You, in IBM Bob"
+  },
+  {
+   "x": 560,
+   "y": 300,
+   "w": 260,
+   "size": 40,
+   "color": "#2a2a30",
+   "weight": 700,
+   "align": "center",
+   "text": "Analyse"
+  },
+  {
+   "x": 560,
+   "y": 348,
+   "w": 330,
+   "size": 32,
+   "color": "#6b6b74",
+   "weight": 600,
+   "align": "center",
+   "text": "every usage, file & line"
+  },
+  {
+   "x": 885,
+   "y": 300,
+   "w": 240,
+   "size": 40,
+   "color": "#2a2a30",
+   "weight": 700,
+   "align": "center",
+   "text": "Plan"
+  },
+  {
+   "x": 885,
+   "y": 348,
+   "w": 300,
+   "size": 32,
+   "color": "#6b6b74",
+   "weight": 600,
+   "align": "center",
+   "text": "ten steps, in order"
+  },
+  {
+   "x": 1310,
+   "y": 318,
+   "w": 400,
+   "size": 42,
+   "color": "#8f5c00",
+   "weight": 700,
+   "align": "center",
+   "text": "you type “approved”"
+  },
+  {
+   "x": 1310,
+   "y": 368,
+   "w": 400,
+   "size": 32,
+   "color": "#6b6b74",
+   "weight": 600,
+   "align": "center",
+   "text": "nothing changes before"
+  },
+  {
+   "x": 210,
+   "y": 690,
+   "w": 260,
+   "size": 40,
+   "color": "#2a2a30",
+   "weight": 700,
+   "align": "center",
+   "text": "Apply"
+  },
+  {
+   "x": 210,
+   "y": 738,
+   "w": 320,
+   "size": 32,
+   "color": "#6b6b74",
+   "weight": 600,
+   "align": "center",
+   "text": "one commit per step"
+  },
+  {
+   "x": 655,
+   "y": 718,
+   "w": 260,
+   "size": 40,
+   "color": "#2a2a30",
+   "weight": 700,
+   "align": "center",
+   "text": "Verify"
+  },
+  {
+   "x": 655,
+   "y": 766,
+   "w": 400,
+   "size": 32,
+   "color": "#6b6b74",
+   "weight": 600,
+   "align": "center",
+   "text": "your own lint, tests & build"
+  },
+  {
+   "x": 955,
+   "y": 690,
+   "w": 220,
+   "size": 32,
+   "color": "#1f8a4c",
+   "weight": 700,
+   "align": "center",
+   "text": "only if green"
+  },
+  {
+   "x": 1270,
+   "y": 718,
+   "w": 320,
+   "size": 40,
+   "color": "#2a2a30",
+   "weight": 700,
+   "align": "center",
+   "text": "Pull request"
+  },
+  {
+   "x": 1270,
+   "y": 766,
+   "w": 420,
+   "size": 32,
+   "color": "#6b6b74",
+   "weight": 600,
+   "align": "center",
+   "text": "the report is its description"
+  }
+ ]
+}

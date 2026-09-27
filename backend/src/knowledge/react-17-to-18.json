@@ -93,5 +93,77 @@
     "resolution": "code",
     "docsKeywords": ["unstable_batchedUpdates"],
     "manualAction": "With React 18's automatic batching, explicit calls to unstable_batchedUpdates are no longer needed in most cases. Remove them and verify behaviour. If you need to force synchronous rendering, use flushSync from 'react-dom' instead."
+  },
+  {
+    "id": "react-bc-8",
+    "description": "ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot()",
+    "affectedApis": ["ReactDOM.unmountComponentAtNode"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "medium",
+    "detect": [{ "module": "react-dom", "api": "unmountComponentAtNode" }],
+    "resolution": "code",
+    "docsKeywords": ["unmountComponentAtNode", "root.unmount"],
+    "manualAction": "Keep the root returned by createRoot(container) and call root.unmount() instead of unmountComponentAtNode(container). In tests, unmount the root the test created (React Testing Library unmounts automatically)."
+  },
+  {
+    "id": "react-bc-9",
+    "description": "ReactDOM.unstable_renderSubtreeIntoContainer() is deprecated in React 18 — render into a portal instead",
+    "affectedApis": ["ReactDOM.unstable_renderSubtreeIntoContainer"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "medium",
+    "detect": [{ "module": "react-dom", "api": "unstable_renderSubtreeIntoContainer" }],
+    "resolution": "code",
+    "docsKeywords": ["renderSubtreeIntoContainer"],
+    "manualAction": "Replace unstable_renderSubtreeIntoContainer with ReactDOM.createPortal(children, container) rendered from the parent component, which keeps context working without a second root."
+  },
+  {
+    "id": "react-bc-10",
+    "description": "ReactDOMServer.renderToNodeStream() is deprecated in React 18 — use renderToPipeableStream() for streaming SSR",
+    "affectedApis": ["ReactDOMServer.renderToNodeStream"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "medium",
+    "detect": [{ "module": "react-dom/server", "api": "renderToNodeStream" }],
+    "resolution": "code",
+    "docsKeywords": ["renderToNodeStream", "renderToPipeableStream"],
+    "manualAction": "Switch Node streaming SSR to renderToPipeableStream(element, { onShellReady() { stream.pipe(res) } }) and pair it with hydrateRoot on the client. renderToString keeps working (with limited Suspense support)."
+  },
+  {
+    "id": "react-bc-11",
+    "description": "@types/react 18: the children prop is no longer implicit on React.FC / FunctionComponent — list it explicitly in props",
+    "affectedApis": ["React.FC", "FunctionComponent"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": ["types-react-codemod preset-18"],
+    "severity": "medium",
+    "detect": [
+      { "module": "react", "api": "FC", "extensions": [".ts", ".tsx"] },
+      { "module": "react", "api": "FunctionComponent", "extensions": [".ts", ".tsx"] }
+    ],
+    "resolution": "review",
+    "docsKeywords": ["children prop", "TypeScript definitions", "@types/react"],
+    "manualAction": "Add `children?: React.ReactNode` to the props of every FC that renders children (type-check with tsc to find them). `npx types-react-codemod preset-18 ./src` automates most of this."
+  },
+  {
+    "id": "react-bc-12",
+    "description": "Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18",
+    "affectedApis": ["act", "createRoot", "ReactDOM.render"],
+    "affectedFiles": [],
+    "automatable": false,
+    "codemods": [],
+    "severity": "low",
+    "detect": [
+      { "module": "react-dom", "api": "render", "testFilesOnly": true },
+      { "module": "react-dom/client", "api": "createRoot", "testFilesOnly": true },
+      { "module": "react-dom/test-utils", "api": "act", "testFilesOnly": true }
+    ],
+    "resolution": "review",
+    "docsKeywords": ["IS_REACT_ACT_ENVIRONMENT", "testing environment"],
+    "manualAction": "In the test setup file (e.g. setupTests.js / jest.setup.js), set `globalThis.IS_REACT_ACT_ENVIRONMENT = true;` so React 18 knows it runs in an act-aware test environment. React Testing Library ≥ 13 sets this automatically for tests that use it."
   }
 ]

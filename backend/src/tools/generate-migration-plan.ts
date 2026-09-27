@@ -20,11 +20,12 @@ import {
   readPlanIfExists,
   writePlan,
   setPhase,
+  computePlanId,
 } from "../lib/session.js";
 import { isTestFile } from "../lib/ast.js";
 import { planPackageChanges, LOCKFILES } from "../lib/packages.js";
 import { hasTransform } from "../lib/transforms.js";
-import type { MigrationPlan, MigrationStep, BreakingChange, DependencyUsage } from "../types.js";
+import type { MigrationPlan, MigrationStep, BreakingChange, DependencyUsage, PeerConflict, StepStatus } from "../types.js";
 
 interface Input {
   sessionId: string;
@@ -42,9 +43,11 @@ export async function generateMigrationPlan(input: Input): Promise<string> {
     throw new Error("Blast radius has not been calculated. Call calculate_migration_blast_radius first.");
   }
 
+  const conflicts = analysis.compat?.conflicts ?? [];
   const inputFingerprint = hash({
     requirements: requirements.breakingChanges,
     usages: analysis.dependencyUsages.map((u) => [u.file, u.line, u.api, u.breakingChangeIds]),
+    conflicts,
     toVersion,
   });
 
@@ -65,9 +68,10 @@ export async function generateMigrationPlan(input: Input): Promise<string> {
     toVersion,
     analysis.packageManager,
     requirements.breakingChanges,
-    analysis.dependencyUsages
+    analysis.dependencyUsages,
+    conflicts
   );
-  const planId = hash({ steps: steps.map(({ id, title, files, changeType, packageChanges }) => ({ id, title, files, changeType, packageChanges })) }).slice(0, 12);
+  const planId = computePlanId(steps);
 
   const plan: MigrationPlan = {
     sessionId,
@@ -88,7 +92,7 @@ export async function generateMigrationPlan(input: Input): Promise<string> {
   writePlan(sessionId, plan);
   setPhase(sessionId, plan.approval.approved ? "plan_approved" : "plan_ready");
 
-  return renderPlanAsMarkdown(plan, dependency, fromVersion, toVersion, existing ? "inputs changed — plan rebuilt" : null);
+  return renderPlanAsMarkdown(plan, dependency, fromVersion, toVersion, existing ? "inputs changed — plan rebuilt, re-approval required" : null);
 }
 
 // ---------------------------------------------------------------------------
@@ -101,24 +105,48 @@ function buildSteps(
   toVersion: string,
   packageManager: keyof typeof LOCKFILES,
   breakingChanges: BreakingChange[],
-  usages: DependencyUsage[]
+  usages: DependencyUsage[],
+  conflicts: PeerConflict[]
 ): MigrationStep[] {
   const steps: MigrationStep[] = [];
   let order = 1;
 
-  // Step 1: dependency family version update + install (lockfile included)
+  // Peer conflicts that the dependency step does NOT fix automatically come first:
+  // the install fails until they are resolved.
+  const manualConflicts = conflicts.filter((c) => !c.autoUpgrade);
+  if (manualConflicts.length > 0) {
+    steps.push({
+      id: `step-${order}-peer-compat`,
+      order: order++,
+      title: `Resolve peer-dependency conflicts with ${dependency} ${toVersion}`,
+      description:
+        `These packages declare peer ranges that exclude ${dependency} ${toVersion}, so the install in the next step will fail until they are upgraded or replaced: ` +
+        manualConflicts
+          .map((c) => `\`${c.name}@${c.version}\` (peer ${c.peer} ${c.range}${c.section ? "" : ", transitive"})${c.suggestion ? ` → try \`${c.suggestion}\`` : ""}`)
+          .join("; ") +
+        ". Edit package.json on the migration branch (do not run install), then record it with markManualComplete.",
+      files: ["package.json"],
+      changeType: "manual",
+      breakingChangeId: null,
+      automatable: false,
+      status: "pending",
+    });
+  }
+
+  // Dependency family version update + install (lockfile included).
   // Never resolve package.json against the server's own cwd.
-  const packageChanges = localPath ? planPackageChanges(localPath, dependency, toVersion) : [];
+  const packageChanges = localPath ? planPackageChanges(localPath, dependency, toVersion, conflicts) : [];
   const lockfile = LOCKFILES[packageManager];
   const hasLockfile = localPath !== "" && fs.existsSync(path.join(localPath, lockfile));
   const names = packageChanges.map((c) => c.name);
+  const reasonLabel = { target: "", companion: " — kept in lock-step", types: " — type definitions", "peer-compat": " — peer range must accept the target" } as const;
   steps.push({
     id: `step-${order}-dependencies`,
     order: order++,
     title: `Update ${names.length > 0 ? names.join(", ") : dependency} to ${toVersion} and install`,
     description:
       (packageChanges.length > 0
-        ? packageChanges.map((c) => `\`${c.name}\` ${c.from} → ${c.to} (${c.section})`).join("; ")
+        ? packageChanges.map((c) => `\`${c.name}\` ${c.from} → ${c.to} (${c.section}${reasonLabel[c.reason ?? "target"]})`).join("; ")
         : `No declared version of \`${dependency}\` needs changing in package.json.`) +
       `. Then run \`${packageManager} install\`` +
       (hasLockfile ? ` (updates ${lockfile})` : " (no lockfile in repo — none is created)") +
@@ -215,6 +243,16 @@ function hash(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 
+export const STEP_ICON: Record<StepStatus, string> = {
+  pending: "⏳",
+  applied: "✅",
+  completed_manual: "✍️",
+  manual_required: "⚠️",
+  skipped: "⏭️",
+  failed: "❌",
+  not_applicable: "➖",
+};
+
 function renderPlanAsMarkdown(
   plan: MigrationPlan,
   dep: string,
@@ -222,28 +260,35 @@ function renderPlanAsMarkdown(
   to: string,
   note: string | null
 ): string {
+  const auto = plan.steps.filter((s) => s.automatable).length;
+  const cell = (t: string) => t.replace(/\|/g, "\\|").replace(/\n/g, " ");
   const lines: string[] = [
     `## Migration Plan: ${dep} ${from} → ${to}`,
     ``,
-    `**Plan ID:** \`${plan.planId}\`${note ? ` (${note})` : ""}`,
-    `**Summary:** ${plan.summary}`,
-    `**Estimated effort:** ${plan.estimatedEffort.toUpperCase()}`,
-    `**Steps:** ${plan.steps.length}`,
-    `**Approval:** ${plan.approval.approved ? `approved at ${plan.approval.approvedAt}` : "NOT approved — no code will be changed until it is"}`,
+    `**Plan ID:** \`${plan.planId}\`${note ? ` (${note})` : ""} · **Effort:** ${plan.estimatedEffort.toUpperCase()} · ` +
+      `**Steps:** ${plan.steps.length} (${auto} automated, ${plan.steps.length - auto} manual/review)`,
+    `**Approval:** ${plan.approval.approved ? `✅ approved at ${plan.approval.approvedAt}` : "⏳ NOT approved — no code will be changed until it is"}`,
     ``,
-    `### Steps`,
+    plan.summary,
+    ``,
+    `| # | Step | Type | Automated | Files | Status |`,
+    `|---|---|---|---|---|---|`,
+    ...plan.steps.map(
+      (s) =>
+        `| ${s.order} | ${cell(s.title.length > 90 ? `${s.title.slice(0, 87)}…` : s.title)} | ${s.changeType} | ${s.automatable ? "yes" : "no"} | ${s.files.length} | ${STEP_ICON[s.status]} ${s.status} |`
+    ),
+    ``,
+    `### Step details`,
     ``,
   ];
 
   for (const step of plan.steps) {
-    lines.push(`#### ${step.order}. ${step.title}`);
-    lines.push(`- **Step ID:** \`${step.id}\` — status: ${step.status}`);
-    lines.push(`- **Type:** ${step.changeType}`);
-    lines.push(`- **Automatable:** ${step.automatable ? "Yes" : "No"}`);
+    lines.push(`**${step.order}. \`${step.id}\`** — ${step.description.split("\n")[0]}`);
     if (step.files.length > 0) {
-      lines.push(`- **Files (${step.files.length}):** ${step.files.slice(0, 5).join(", ")}${step.files.length > 5 ? ` +${step.files.length - 5} more` : ""}`);
+      lines.push(`  Files: ${step.files.slice(0, 5).join(", ")}${step.files.length > 5 ? ` +${step.files.length - 5} more` : ""}`);
     }
-    lines.push(`- **Description:** ${step.description.split("\n")[0]}`);
+    const manual = step.description.split("\n").find((l) => l.startsWith("⚠️ Manual action required"));
+    if (manual) lines.push(`  ${manual}`);
     lines.push(``);
   }
 

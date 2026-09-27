@@ -1,0 +1,77 @@
+{
+ "w": 1600,
+ "h": 600,
+ "alt": "Three hand-drawn panels: a stack of files under a magnifying glass (where is it used?), a cracked file tagged 18.3.1 (what will break?), and a checklist with a tick, a cross and a question mark (did it actually work?).",
+ "labels": [
+  {
+   "x": 128,
+   "y": 70,
+   "w": 60,
+   "size": 64,
+   "color": "#8f5c00",
+   "weight": 700,
+   "align": "center",
+   "text": "?"
+  },
+  {
+   "x": 470,
+   "y": 150,
+   "w": 60,
+   "size": 56,
+   "color": "#8f5c00",
+   "weight": 700,
+   "align": "center",
+   "text": "?"
+  },
+  {
+   "x": 290,
+   "y": 470,
+   "w": 480,
+   "size": 46,
+   "color": "#2a2a30",
+   "weight": 600,
+   "align": "center",
+   "text": "Where is it used?"
+  },
+  {
+   "x": 980,
+   "y": 154,
+   "w": 150,
+   "size": 38,
+   "color": "#8f5c00",
+   "weight": 700,
+   "align": "center",
+   "text": "18.3.1"
+  },
+  {
+   "x": 800,
+   "y": 470,
+   "w": 480,
+   "size": 46,
+   "color": "#2a2a30",
+   "weight": 600,
+   "align": "center",
+   "text": "What will break?"
+  },
+  {
+   "x": 1244,
+   "y": 300,
+   "w": 40,
+   "size": 48,
+   "color": "#8f5c00",
+   "weight": 700,
+   "align": "center",
+   "text": "?"
+  },
+  {
+   "x": 1330,
+   "y": 470,
+   "w": 520,
+   "size": 46,
+   "color": "#2a2a30",
+   "weight": 600,
+   "align": "center",
+   "text": "Did it actually work?"
+  }
+ ]
+}

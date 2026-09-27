@@ -1,20 +1,37 @@
 # Demo Target Repository
 
-> **Status: NOT READY for the live demo.** Facts below were verified on 2026-09-26 (UTC+05:00)
-> from a read-only shallow clone; nothing was pushed or forked.
+## Recommended: `examples/react17-demo-app` (ready)
 
-## Source repository
+[`examples/react17-demo-app`](../examples/react17-demo-app/README.md) is a small React 17 app built for the demo
+(added 2026-09-26). It is green on React 17 (4/4 Jest tests, ESLint clean, esbuild build) and contains the
+patterns the React 18 guide warns about. It has been migrated end to end by the real MCP server over stdio
+(`backend/scripts/e2e-demo.mjs`); the recorded run is in [`evidence/e2e-run/`](evidence/e2e-run/).
 
-**[`gothinkster/react-redux-realworld-example-app`](https://github.com/gothinkster/react-redux-realworld-example-app)**
-(HEAD `ee72eba`, last commit 2021-09-07)
+| Measured in the recorded run | Value |
+|---|---|
+| Files using the React family | 11 (16 imports, 19 API usages; 13 source files scanned) |
+| Applicable rules (validated against the React 18 guide PDF) | 8 — 3 automated (bc-1, bc-2, bc-3), 5 manual/review |
+| Files with breaking-change evidence | 9 — 4 high, 5 low |
+| Peer conflict found before install | `@testing-library/react@12.1.5` (peer `react <18`) → upgraded to ^14.3.1 by the dependency step |
+| Verification #1 | FAILED — lint (`react/no-deprecated`: `unmountComponentAtNode`) and 1 test (automatic batching) |
+| Verification #2 (after the recorded manual steps) | PASSED — dependencies, lint, test, build |
 
-## Fork
+To demo the pull request **live**, push the folder to a GitHub repository you own and set `GITHUB_TOKEN`. The
+recorded run opened its PR against a local sandbox (a mocked GitHub API and a bare repository), not github.com.
 
-`https://github.com/FayazNoor/react-redux-realworld-example-app` — **pending: not created yet.**
-`git ls-remote` on that URL fails (GitHub answers as for a missing or private repository). Create the
-fork before relying on it anywhere.
+**Pre-demo checklist**
 
-## Verified facts about the source repo
+- [ ] Repository pushed to your GitHub account; `GITHUB_TOKEN` (repo scope) in `.bob/mcp.json`
+- [ ] `npm install && npm test && npm run lint && npm run build` pass on its default branch (baseline green)
+- [ ] No `codebase-doctor/react-18.3.1-upgrade` branch or open PR left over from a rehearsal
+- [ ] `npm run build` done in this repository; Bob shows the `codebase-doctor` MCP server as connected
+- [ ] Time the live run and quote only the measured duration
+
+---
+
+## Previously considered: `gothinkster/react-redux-realworld-example-app` (not suitable)
+
+Facts verified on 2026-09-26 (UTC+05:00) from a read-only shallow clone; nothing was pushed or forked.
 
 | Claimed earlier | Actual (verified) |
 |---|---|
@@ -25,43 +42,10 @@ fork before relying on it anywhere.
 | — | Tooling: `react-scripts` 1.1.1, no lockfile, no `lint` script |
 | — | `react-redux@^5.0.7` declares peer `react: ^0.14 \|\| ^15 \|\| ^16` (checked with `npm view`) |
 
-### Codebase Doctor analysis of the source repo (local run, no GitHub/API calls)
+Why it is not used:
 
-Run with the current backend (`findDependencyUsages` + `buildRequirements` + `calculateBlastRadius`) on
-the clone, React `^16.3.0` → `18.3.1`:
-
-| Result | Value |
-|---|---|
-| Files using the React family | 25 (26 import sites, 13 API usages) |
-| Applicable rules | `react-bc-1` (ReactDOM.render), `react-bc-4` (automatic-batching review) |
-| Files with breaking-change evidence | 12 — 1 high (`src/index.js`, 70), 11 low (class components, 20) |
-| Coverage warning | repo is on 16.x; built-in rules cover 17 → 18 only |
-| Planned dependency step | `react` and `react-dom` `^16.3.0` → `^18.3.1` |
-
-## Why it is not demo-ready
-
-1. **The dependency step will fail (by design):** npm ≥ 7 will reject React 18 because `react-redux@5`
-   only allows React ≤ 16 (ERESOLVE). `apply_migration_patch` restores package.json and reports the
-   conflict instead of silently forcing it.
-2. **The narrative does not match:** it is a React **16** app, not 17, and has no tests, so the
-   `act()` / test-utils story and "verify loop fixes a failing test" cannot happen on it.
-3. **Verification may not be meaningful:** `react-scripts` 1.1.1 (2018) with no test files; whether
-   its build runs on Node 20 has not been checked.
-4. The fork does not exist yet.
-
-## Options (decision needed — no external repo was changed)
-
-- **A. Prepare the fork** — fork it, then commit a clearly-labelled baseline on the fork's default
-  branch *before* the demo: React 17 + `react-redux@7` (supports 16.8–18) + a current `react-scripts`,
-  plus a small test using `act` from `react-dom/test-utils`. The demo then shows a genuine 17 → 18
-  migration on that baseline.
-- **B. Choose a different public repo** that is already on React 17 with tests and a lockfile.
-
-## Pre-demo checklist (after A or B)
-
-- [ ] Fork exists and `GITHUB_TOKEN` has `repo` scope on it
-- [ ] `npm install` on the default branch succeeds with Node 20
-- [ ] `npm test` / `npm run build` succeed on the default branch (baseline is green)
-- [ ] Run `analyze_dependency_usage` once and record the real blast radius here
-- [ ] Delete any old migration branch from the fork before the live demo
-- [ ] Time the full end-to-end run and record the measured duration (do not use estimates)
+1. `react-redux@5` blocks installing React 18 (npm ERESOLVE). Codebase Doctor now detects this before anything
+   changes: the plan gets a peer-compatibility step and, when the registry is reachable, suggests the lowest
+   compatible release.
+2. It is a React **16** app with no tests, so the verification story cannot be shown.
+3. The planned fork `FayazNoor/react-redux-realworld-example-app` was never created.

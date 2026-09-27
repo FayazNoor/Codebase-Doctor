@@ -103,6 +103,26 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/** Leading whitespace of the line that contains `index`. */
+function lineIndent(source: string, index: number): string {
+  const lineStart = source.lastIndexOf("\n", index - 1) + 1;
+  return source.slice(lineStart).match(/^[ \t]*/)![0];
+}
+
+type Build = (element: string, container: string, indent: string) => string;
+
+/** createRoot(el).render(<X />) — multi-line JSX keeps the layout the React docs use. */
+const buildCreateRoot: Build = (element, container, indent) =>
+  element.includes("\n")
+    ? `createRoot(${container}).render(\n${indent}  ${element}\n${indent})`
+    : `createRoot(${container}).render(${element})`;
+
+/** hydrateRoot(el, <X />) — note the argument order swap. */
+const buildHydrateRoot: Build = (element, container, indent) =>
+  element.includes("\n")
+    ? `hydrateRoot(\n${indent}  ${container},\n${indent}  ${element}\n${indent})`
+    : `hydrateRoot(${container}, ${element})`;
+
 /**
  * After calls were rewritten: if the react-dom binding is no longer referenced,
  * replace its import with `import { name } from 'react-dom/client'`; otherwise
@@ -141,7 +161,7 @@ function rewriteRootCalls(
   source: string,
   binding: string,
   method: "render" | "hydrate",
-  build: (element: string, container: string) => string
+  build: Build
 ): { result: string; rewritten: number } {
   let result = source;
   let rewritten = 0;
@@ -151,7 +171,7 @@ function rewriteRootCalls(
     const split = splitReactArgs(call.args);
     if (!split) continue; // 3-argument (callback) calls stay manual — react-bc-5
     if (!split.element.trimStart().startsWith("<")) continue;
-    result = result.slice(0, call.start) + build(split.element, split.container) + result.slice(call.end);
+    result = result.slice(0, call.start) + build(split.element, split.container, lineIndent(result, call.start)) + result.slice(call.end);
     rewritten++;
   }
   return { result, rewritten };
@@ -172,16 +192,88 @@ function rewriteRootCalls(
 // ---------------------------------------------------------------------------
 
 export function transformReactDOMRender(source: string): string {
-  const binding = reactDomBinding(source);
-  if (!binding) return source;
-  const { result, rewritten } = rewriteRootCalls(
-    source,
-    binding,
-    "render",
-    (element, container) => `createRoot(${container}).render(${element})`
+  let result = transformNamedImportCalls(source, "render", "createRoot", buildCreateRoot);
+  const binding = reactDomBinding(result);
+  if (!binding) return result;
+  const rewrite = rewriteRootCalls(result, binding, "render", buildCreateRoot);
+  if (rewrite.rewritten === 0) return result; // nothing to do / already migrated
+  result = fixReactDomImports(rewrite.result, binding, "createRoot");
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Named imports: `import { render } from 'react-dom'` (the form used in the
+// official React 18 upgrade guide), including aliases (`render as mount`).
+// ---------------------------------------------------------------------------
+
+const NAMED_REACT_DOM_IMPORT = /^import\s+\{([^}]*)\}\s+from\s+(['"])react-dom\2\s*;?[ \t]*$/m;
+
+function parseSpecifiers(list: string): Array<{ imported: string; local: string; text: string }> {
+  return list
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((text) => {
+      const m = text.match(/^([\w$]+)(?:\s+as\s+([\w$]+))?$/);
+      return { imported: m?.[1] ?? text, local: m?.[2] ?? m?.[1] ?? text, text };
+    });
+}
+
+/** Add `name` to the react-dom/client import (creating it after `anchor` if needed). */
+function ensureClientImport(source: string, name: string, anchor: string): string {
+  const clientImport = /^import\s+\{([^}]*)\}\s+from\s+['"]react-dom\/client['"]\s*;?/m;
+  const existing = source.match(clientImport);
+  if (existing) {
+    const names = existing[1].split(",").map((n) => n.trim()).filter(Boolean);
+    if (names.includes(name)) return source;
+    return source.replace(clientImport, `import { ${[...names, name].join(", ")} } from 'react-dom/client';`);
+  }
+  const line = `import { ${name} } from 'react-dom/client';`;
+  return anchor ? source.replace(anchor, `${anchor}\n${line}`) : `${line}\n${source}`;
+}
+
+function transformNamedImportCalls(
+  source: string,
+  api: "render" | "hydrate",
+  clientName: "createRoot" | "hydrateRoot",
+  build: Build
+): string {
+  const importMatch = source.match(NAMED_REACT_DOM_IMPORT);
+  if (!importMatch) return source;
+  const specs = parseSpecifiers(importMatch[1]);
+  const spec = specs.find((s) => s.imported === api);
+  if (!spec) return source;
+
+  let result = source;
+  let rewritten = 0;
+  for (const call of findCalls(result, spec.local).reverse()) {
+    const split = splitReactArgs(call.args);
+    if (!split || !split.element.trimStart().startsWith("<")) continue; // callbacks / non-JSX stay manual
+    result = result.slice(0, call.start) + build(split.element, split.container, lineIndent(result, call.start)) + result.slice(call.end);
+    rewritten++;
+  }
+  if (rewritten === 0) return source;
+
+  // Drop the specifier if nothing else references it; keep the rest of the import.
+  // Method definitions such as a class component's `render() {` are not references.
+  const local = escapeRegExp(spec.local);
+  const withoutImport = stripComments(result.replace(NAMED_REACT_DOM_IMPORT, "")).replace(
+    new RegExp(`(?<![\\w$.])${local}\\s*\\([^)]*\\)\\s*\\{`, "g"),
+    ""
   );
-  if (rewritten === 0) return source; // nothing to do / already migrated
-  return fixReactDomImports(result, binding, "createRoot");
+  const stillUsed = new RegExp(`(?<![\\w$.])${local}\\b`).test(withoutImport);
+  const remaining = stillUsed ? specs : specs.filter((s) => s !== spec);
+  const quote = importMatch[2];
+  const current = result.match(NAMED_REACT_DOM_IMPORT)![0];
+  const replacement = remaining.length > 0 ? `import { ${remaining.map((s) => s.text).join(", ")} } from ${quote}react-dom${quote};` : "";
+  if (replacement) {
+    result = result.replace(current, replacement);
+    return ensureClientImport(result, clientName, replacement);
+  }
+  // The whole import goes away: put the client import in its place.
+  const hasClient = /from\s+['"]react-dom\/client['"]/.test(result);
+  result = hasClient ? result.replace(new RegExp(escapeRegExp(current) + "\\n?"), "") : result.replace(current, `import { ${clientName} } from 'react-dom/client';`);
+  return hasClient ? ensureClientImport(result, clientName, "") : result;
 }
 
 // ---------------------------------------------------------------------------
@@ -196,16 +288,12 @@ export function transformReactDOMRender(source: string): string {
 // ---------------------------------------------------------------------------
 
 export function transformReactDOMHydrate(source: string): string {
-  const binding = reactDomBinding(source);
-  if (!binding) return source;
-  const { result, rewritten } = rewriteRootCalls(
-    source,
-    binding,
-    "hydrate",
-    (element, container) => `hydrateRoot(${container}, ${element})`
-  );
-  if (rewritten === 0) return source;
-  return fixReactDomImports(result, binding, "hydrateRoot");
+  const result = transformNamedImportCalls(source, "hydrate", "hydrateRoot", buildHydrateRoot);
+  const binding = reactDomBinding(result);
+  if (!binding) return result;
+  const rewrite = rewriteRootCalls(result, binding, "hydrate", buildHydrateRoot);
+  if (rewrite.rewritten === 0) return result;
+  return fixReactDomImports(rewrite.result, binding, "hydrateRoot");
 }
 
 // ---------------------------------------------------------------------------

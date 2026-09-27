@@ -83,7 +83,7 @@ describe("2 — requirements with user docs keep canonical IDs", () => {
     expect(out).toContain("react-17-to-18.json + supplied docs");
     const req = readRequirements(sessionId);
     expect(req.breakingChanges.map((b) => b.id)).toEqual([
-      "react-bc-1", "react-bc-2", "react-bc-3", "react-bc-4", "react-bc-6", "react-bc-7", "docs-1",
+      "react-bc-1", "react-bc-2", "react-bc-3", "react-bc-4", "react-bc-6", "react-bc-7", "react-bc-12", "docs-1",
     ]);
     expect(req.breakingChanges.find((b) => b.id === "docs-1")!.automatable).toBe(false);
   });
@@ -96,7 +96,7 @@ describe("3 — blast radius from real API evidence", () => {
     const score = Object.fromEntries(report.topAffectedFiles.map((f) => [f.file, f.riskScore]));
     expect(score).toEqual({
       "src/index.jsx": 80,
-      "src/App.test.jsx": 80,
+      "src/App.test.jsx": 90,
       "src/hydrate.jsx": 70,
       "src/BatchedUpdatesExample.jsx": 30,
       "src/App.jsx": 20,
@@ -131,7 +131,7 @@ describe("7 — apply every step", () => {
   it("dependency step: react + react-dom upgraded, installed and lockfile committed", async () => {
     await applyMigrationPatch({ sessionId, stepId: step("config").id });
     expect(JSON.parse(read("package.json")).dependencies).toEqual({ react: "^18.3.1", "react-dom": "^18.3.1" });
-    expect(fake.calls.map((c) => c.args.join(" "))).toEqual(["install"]);
+    expect(fake.calls.map((c) => c.args.join(" "))).toEqual(["install --no-audit --no-fund"]);
     expect(step("config").status).toBe("applied");
   });
 
@@ -163,7 +163,7 @@ describe("7 — apply every step", () => {
   });
 
   it("manual rules and the test step are reported as manual_required, not applied", async () => {
-    for (const id of ["react-bc-4", "react-bc-6", "react-bc-7", "docs-1", "test"]) {
+    for (const id of ["react-bc-4", "react-bc-6", "react-bc-7", "react-bc-12", "docs-1", "test"]) {
       await applyMigrationPatch({ sessionId, stepId: step(id).id });
       expect(step(id).status).toBe("manual_required");
       expect(step(id).outcome!.commit).toBeNull();
@@ -205,9 +205,9 @@ describe("10 — generate_report", () => {
     const md = await generateReport({ sessionId, format: "markdown" });
     expect(md).toContain("✅ PASSED");
     expect(md).toContain("| Test | PASS | npm run test |");
-    expect(md).toContain("| Steps automatically applied | 4 / 9 |");
+    expect(md).toContain("| Steps automatically applied | 4 / 10 |");
     expect(md).toContain("| Steps manually fixed / reviewed | 3 |");
-    expect(md).toContain("| Steps still requiring manual action | 2 |");
+    expect(md).toContain("| Steps still requiring manual action | 3 |");
     expect(md).toMatch(/✅ Automatically fixed \| HIGH \| `react-bc-1`/);
     expect(md).toMatch(/✍️ Manually fixed \/ reviewed \| MEDIUM \| `react-bc-4`/);
     expect(md).toMatch(/⚠️ Still requires manual action \| LOW \| `react-bc-7`/);
@@ -218,9 +218,10 @@ describe("10 — generate_report", () => {
   it("HTML report is rendered from the same data", async () => {
     const html = await generateReport({ sessionId, format: "html" });
     expect(html).toContain("<!DOCTYPE html>");
-    expect(html).toContain("4/9");
-    expect(html).toContain('<td class="ok">PASS</td>');
-    expect(html).toContain("Estimated (not measured)");
+    expect(html).toContain("<th scope=\"row\">Steps applied automatically</th><td>4 / 10</td>");
+    expect(html).toMatch(/<th scope="row">Test<\/th><td><span class="pill pill-ok">PASS<\/span>/);
+    expect(html).toContain('<span class="kind kind-estimate">estimate</span>');
+    expect(html).toContain('<span class="kind kind-none">not measured</span>');
     expect(html).toContain("Made with IBM Bob");
   });
 });

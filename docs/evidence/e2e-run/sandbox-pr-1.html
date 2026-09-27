@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sandbox PR #1 · codebase-doctor-sandbox/pantry-list</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<style>
+ body{margin:0;background:#f4f4f1;color:#26262b;font:14px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+ .banner{background:#26262b;color:#fafaf8;padding:10px 24px;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace}
+ .banner b{color:#f0a93b}
+ main{max-width:920px;margin:0 auto;padding:24px}
+ .meta{font:12.5px ui-monospace,Menlo,Consolas,monospace;color:#55555d}
+ .card{background:#fff;border:1px solid #deded8;border-radius:10px;padding:20px 24px;margin-top:16px}
+ h1{font-size:20px;margin:6px 0}
+ table{border-collapse:collapse;width:100%;font-size:13px}
+ th,td{border:1px solid #e3e3de;padding:6px 8px;text-align:left;vertical-align:top}
+ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+ pre{background:#f4f4f1;padding:10px;border-radius:8px;overflow:auto}
+ .pill{display:inline-block;padding:1px 8px;border-radius:999px;background:#e8f6ec;color:#15803d;font-weight:700;font-size:12px}
+</style></head><body>
+<div class="banner"><b>Codebase Doctor sandbox</b> — not GitHub. This page shows the pull request exactly as the tool sent it to the mocked GitHub API (codebase-doctor-sandbox/pantry-list), and the commits that were pushed to the sandbox's local bare repository.</div>
+<main>
+ <div class="meta">codebase-doctor-sandbox/pantry-list · pull request #1 · <span class="pill">open</span> · <code>codebase-doctor/react-18.3.1-upgrade</code> → <code>main</code> · labels: codebase-doctor, dependencies</div>
+ <h1>chore(deps): upgrade react ^17.0.2 → 18.3.1 [Codebase Doctor]</h1>
+ <div class="card"><div class="meta">Commits pushed</div><pre><code>55040d8 chore(migration): ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching [codebase-doctor step 8]
+1472489 chore(migration): Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = tr... [codebase-doctor step 9]
+1138182 chore(migration): Automatic batching: setState calls in timeouts/promises/native handlers are now batched... [codebase-doctor step 5]
+d9fc42f chore(migration): ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on th... [codebase-doctor step 6]
+f8756bf chore(migration): act() from react-dom/test-utils is deprecated — import act from &#39;react&#39; (available from... [codebase-doctor step 4]
+148d1eb chore(migration): ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() [codebase-doctor step 3]
+72cea40 chore(migration): ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 m... [codebase-doctor step 2]
+798ad60 chore(migration): Update react, react-dom, @testing-library/react to 18.3.1 and install [codebase-doctor step 1]
+cd91f35 Pantry list on React 17
+</code></pre></div>
+ <div class="card" id="body"><pre>## 🩺 Codebase Doctor — react ^17.0.2 → 18.3.1
+
+&gt; This pull request was created by [Codebase Doctor](https://github.com/FayazNoor/Codebase-Doctor) using IBM Bob. Every plan step was approved by a human first, and the dependency check plus lint/test/build (whichever the repository defines) passed on the pushed commit before it was opened.
+
+### Summary
+Upgrade react from ^17.0.2 to 18.3.1 across 9 affected files. 10 migration steps: 4 automatable, 6 requiring manual changes or review.
+
+
+---
+## Migration Report: react ^17.0.2 → 18.3.1
+
+Repository: `codebase-doctor-sandbox/pantry-list` · Branch: `codebase-doctor/react-18.3.1-upgrade` · Plan `b3b654d66018` approved at 2026-09-26T10:19:06.095Z
+
+### Verification (measured)
+
+✅ PASSED (iteration 2, 2026-09-26T10:25:25.438Z, commit 55040d8)
+
+| Check | Result | Command |
+|---|---|---|
+| Dependencies installed | PASS | react@18.3.1, react-dom@18.3.1 |
+| Lint | PASS | npm run lint |
+| Test | PASS | npm run test |
+| Build | PASS | npm run build |
+
+Verification history: #1 failed on `f8756bf` → #2 passed on `55040d8`
+
+### Measured
+
+| Metric | Value |
+|---|---|
+| Files using react (package family) | 11 |
+| Files with breaking-change evidence | 9 |
+| Files changed on migration branch | 9 |
+| Steps automatically applied | 4 / 10 |
+| Steps manually fixed / reviewed | 6 |
+| Steps still requiring manual action | 0 |
+| Steps skipped by user | 0 |
+| Steps failed | 0 |
+| Steps not applicable | 0 |
+| Steps not started | 0 |
+| Elapsed session time (wall-clock, session start → this report) | 7 min |
+
+### Estimated (not measured)
+
+| Metric | Value | Basis |
+|---|---|---|
+| Estimated manual effort | ~4.5 h | 9 affected files × 30 min/file (heuristic, not benchmarked) |
+| Estimated time saved | ~4.4 h | estimated manual effort − measured elapsed time |
+
+### Not measured
+
+- Bobcoin consumption — not measured (not exposed to the MCP server)
+- Accuracy — not measured (no ground-truth benchmark)
+
+### Blast Radius
+
+🟡 Moderate blast radius
+
+| Risk tier | Files |
+|---|---|
+| 🔴 High (≥70) | 4 |
+| 🟡 Medium (40–69) | 0 |
+| 🟢 Low (1–39) | 5 |
+
+| Top affected file | Score | Evidence |
+|---|---|---|
+| `src/legacy/toast.jsx` | 90 | react-bc-1 +40, react-bc-8 +20, root bootstrap +30 |
+| `src/legacy/toast.test.jsx` | 90 | react-bc-1 +40, react-bc-3 +20, react-bc-12 +10, test harness +20 |
+| `src/index.jsx` | 80 | react-bc-1 +40, react-bc-6 +10, root bootstrap +30 |
+| `src/ssr-entry.jsx` | 70 | react-bc-2 +40, root bootstrap +30 |
+| `src/App.jsx` | 20 | react-bc-4 +20 |
+| `src/components/AddItemForm.jsx` | 20 | react-bc-4 +20 |
+| `src/components/ItemList.jsx` | 20 | react-bc-4 +20 |
+| `src/components/SyncStatus.jsx` | 20 | react-bc-4 +20 |
+| `src/legacy/store.js` | 10 | react-bc-7 +10 |
+
+### Breaking Changes
+
+| Status | Severity | Breaking change | Files |
+|---|---|---|---|
+| ✅ Automatically fixed | HIGH | `react-bc-1` ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render() | 3 |
+| ✅ Automatically fixed | HIGH | `react-bc-2` ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() | 1 |
+| ✅ Automatically fixed | MEDIUM | `react-bc-3` act() from react-dom/test-utils is deprecated — import act from &#39;react&#39; (available from React 18.3) | 1 |
+| ✍️ Manually fixed / reviewed | MEDIUM | `react-bc-4` Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders | 4 |
+| ✍️ Manually fixed / reviewed | LOW | `react-bc-6` Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects | 1 |
+| ✍️ Manually fixed / reviewed | LOW | `react-bc-7` ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching | 1 |
+| ✍️ Manually fixed / reviewed | MEDIUM | `react-bc-8` ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot() | 1 |
+| ✍️ Manually fixed / reviewed | LOW | `react-bc-12` Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18 | 1 |
+
+### Peer-dependency compatibility
+
+| Package | Peer range | Resolution |
+|---|---|---|
+| `@​testing-library/react@12.1.5` | react &amp;lt;18.0.0 | upgraded to ^14.3.1 by the dependency step |
+
+### Migration Steps
+
+- [x] Update react, react-dom, @​testing-library/react to 18.3.1 and install (config) — ✅ Automatically fixed · `798ad60`
+  - Ran `npm install --no-audit --no-fund`; installed react@​18.3.1, react-dom@​18.3.1.
+- [x] ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render() (codemod) — ✅ Automatically fixed · `72cea40`
+  - Transformed 3 file(s); no remaining usages of the old API.
+- [x] ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() (codemod) — ✅ Automatically fixed · `148d1eb`
+  - Transformed 1 file(s); no remaining usages of the old API.
+- [x] act() from react-dom/test-utils is deprecated — import act from &#39;react&#39; (available from React 18.3) (codemod) — ✅ Automatically fixed · `f8756bf`
+  - Transformed 1 file(s); no remaining usages of the old API.
+- [x] Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders (manual) — ✍️ Manually fixed / reviewed · `1138182`
+  - Completed manually: Audited async setState: only SyncStatus updates state in a promise callback; its test now expects the single batched render
+- [x] ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot() (manual) — ✍️ Manually fixed / reviewed · `d9fc42f`
+  - Completed manually: toast.jsx keeps the root returned by createRoot and calls root.unmount() instead of unmountComponentAtNode
+- [x] Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects (manual) — ✍️ Manually fixed / reviewed
+  - Completed manually: No component uses effects with external side effects; double-invoking is harmless
+- [x] ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching (manual) — ✍️ Manually fixed / reviewed · `55040d8`
+  - Completed manually: Removed unstable_batchedUpdates from store.js; subscribers are notified directly
+- [x] Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18 (manual) — ✍️ Manually fixed / reviewed · `1472489`
+  - Completed manually: Added jest.setup.js setting globalThis.IS_REACT_ACT_ENVIRONMENT = true (jest.setupFiles)
+- [x] Update and verify tests (test) — ✍️ Manually fixed / reviewed
+  - Completed manually: Test suite updated for React 18 (SyncStatus batching expectation, act environment)
+
+---
+Generated by [Codebase Doctor](https://github.com/FayazNoor/Codebase-Doctor) from persisted session data (session `3fd51510-5cd8-41f8-8271-285c542bb72f`).</pre></div>
+</main>
+<script>try{document.getElementById("body").innerHTML=marked.parse("## 🩺 Codebase Doctor — react ^17.0.2 → 18.3.1\n\n> This pull request was created by [Codebase Doctor](https://github.com/FayazNoor/Codebase-Doctor) using IBM Bob. Every plan step was approved by a human first, and the dependency check plus lint/test/build (whichever the repository defines) passed on the pushed commit before it was opened.\n\n### Summary\nUpgrade react from ^17.0.2 to 18.3.1 across 9 affected files. 10 migration steps: 4 automatable, 6 requiring manual changes or review.\n\n\n---\n## Migration Report: react ^17.0.2 → 18.3.1\n\nRepository: `codebase-doctor-sandbox/pantry-list` · Branch: `codebase-doctor/react-18.3.1-upgrade` · Plan `b3b654d66018` approved at 2026-09-26T10:19:06.095Z\n\n### Verification (measured)\n\n✅ PASSED (iteration 2, 2026-09-26T10:25:25.438Z, commit 55040d8)\n\n| Check | Result | Command |\n|---|---|---|\n| Dependencies installed | PASS | react@18.3.1, react-dom@18.3.1 |\n| Lint | PASS | npm run lint |\n| Test | PASS | npm run test |\n| Build | PASS | npm run build |\n\nVerification history: #1 failed on `f8756bf` → #2 passed on `55040d8`\n\n### Measured\n\n| Metric | Value |\n|---|---|\n| Files using react (package family) | 11 |\n| Files with breaking-change evidence | 9 |\n| Files changed on migration branch | 9 |\n| Steps automatically applied | 4 / 10 |\n| Steps manually fixed / reviewed | 6 |\n| Steps still requiring manual action | 0 |\n| Steps skipped by user | 0 |\n| Steps failed | 0 |\n| Steps not applicable | 0 |\n| Steps not started | 0 |\n| Elapsed session time (wall-clock, session start → this report) | 7 min |\n\n### Estimated (not measured)\n\n| Metric | Value | Basis |\n|---|---|---|\n| Estimated manual effort | ~4.5 h | 9 affected files × 30 min/file (heuristic, not benchmarked) |\n| Estimated time saved | ~4.4 h | estimated manual effort − measured elapsed time |\n\n### Not measured\n\n- Bobcoin consumption — not measured (not exposed to the MCP server)\n- Accuracy — not measured (no ground-truth benchmark)\n\n### Blast Radius\n\n🟡 Moderate blast radius\n\n| Risk tier | Files |\n|---|---|\n| 🔴 High (≥70) | 4 |\n| 🟡 Medium (40–69) | 0 |\n| 🟢 Low (1–39) | 5 |\n\n| Top affected file | Score | Evidence |\n|---|---|---|\n| `src/legacy/toast.jsx` | 90 | react-bc-1 +40, react-bc-8 +20, root bootstrap +30 |\n| `src/legacy/toast.test.jsx` | 90 | react-bc-1 +40, react-bc-3 +20, react-bc-12 +10, test harness +20 |\n| `src/index.jsx` | 80 | react-bc-1 +40, react-bc-6 +10, root bootstrap +30 |\n| `src/ssr-entry.jsx` | 70 | react-bc-2 +40, root bootstrap +30 |\n| `src/App.jsx` | 20 | react-bc-4 +20 |\n| `src/components/AddItemForm.jsx` | 20 | react-bc-4 +20 |\n| `src/components/ItemList.jsx` | 20 | react-bc-4 +20 |\n| `src/components/SyncStatus.jsx` | 20 | react-bc-4 +20 |\n| `src/legacy/store.js` | 10 | react-bc-7 +10 |\n\n### Breaking Changes\n\n| Status | Severity | Breaking change | Files |\n|---|---|---|---|\n| ✅ Automatically fixed | HIGH | `react-bc-1` ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render() | 3 |\n| ✅ Automatically fixed | HIGH | `react-bc-2` ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() | 1 |\n| ✅ Automatically fixed | MEDIUM | `react-bc-3` act() from react-dom/test-utils is deprecated — import act from 'react' (available from React 18.3) | 1 |\n| ✍️ Manually fixed / reviewed | MEDIUM | `react-bc-4` Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders | 4 |\n| ✍️ Manually fixed / reviewed | LOW | `react-bc-6` Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects | 1 |\n| ✍️ Manually fixed / reviewed | LOW | `react-bc-7` ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching | 1 |\n| ✍️ Manually fixed / reviewed | MEDIUM | `react-bc-8` ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot() | 1 |\n| ✍️ Manually fixed / reviewed | LOW | `react-bc-12` Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18 | 1 |\n\n### Peer-dependency compatibility\n\n| Package | Peer range | Resolution |\n|---|---|---|\n| `@​testing-library/react@12.1.5` | react &lt;18.0.0 | upgraded to ^14.3.1 by the dependency step |\n\n### Migration Steps\n\n- [x] Update react, react-dom, @​testing-library/react to 18.3.1 and install (config) — ✅ Automatically fixed · `798ad60`\n  - Ran `npm install --no-audit --no-fund`; installed react@​18.3.1, react-dom@​18.3.1.\n- [x] ReactDOM.render() is deprecated in React 18 (the app keeps running in legacy React 17 mode) — replace with createRoot().render() (codemod) — ✅ Automatically fixed · `72cea40`\n  - Transformed 3 file(s); no remaining usages of the old API.\n- [x] ReactDOM.hydrate() is deprecated in React 18 (legacy mode) — replace with hydrateRoot() (codemod) — ✅ Automatically fixed · `148d1eb`\n  - Transformed 1 file(s); no remaining usages of the old API.\n- [x] act() from react-dom/test-utils is deprecated — import act from 'react' (available from React 18.3) (codemod) — ✅ Automatically fixed · `f8756bf`\n  - Transformed 1 file(s); no remaining usages of the old API.\n- [x] Automatic batching: setState calls in timeouts/promises/native handlers are now batched — may affect code or tests relying on intermediate renders (manual) — ✍️ Manually fixed / reviewed · `1138182`\n  - Completed manually: Audited async setState: only SyncStatus updates state in a promise callback; its test now expects the single batched render\n- [x] ReactDOM.unmountComponentAtNode() is deprecated in React 18 — call root.unmount() on the root returned by createRoot() (manual) — ✍️ Manually fixed / reviewed · `d9fc42f`\n  - Completed manually: toast.jsx keeps the root returned by createRoot and calls root.unmount() instead of unmountComponentAtNode\n- [x] Strict Mode now double-invokes effects (mount → unmount → mount) in development to surface side effects (manual) — ✍️ Manually fixed / reviewed\n  - Completed manually: No component uses effects with external side effects; double-invoking is harmless\n- [x] ReactDOM.unstable_batchedUpdates is redundant under React 18 automatic batching (manual) — ✍️ Manually fixed / reviewed · `55040d8`\n  - Completed manually: Removed unstable_batchedUpdates from store.js; subscribers are notified directly\n- [x] Tests that render with react-dom directly need globalThis.IS_REACT_ACT_ENVIRONMENT = true under React 18 (manual) — ✍️ Manually fixed / reviewed · `1472489`\n  - Completed manually: Added jest.setup.js setting globalThis.IS_REACT_ACT_ENVIRONMENT = true (jest.setupFiles)\n- [x] Update and verify tests (test) — ✍️ Manually fixed / reviewed\n  - Completed manually: Test suite updated for React 18 (SyncStatus batching expectation, act environment)\n\n---\nGenerated by [Codebase Doctor](https://github.com/FayazNoor/Codebase-Doctor) from persisted session data (session `3fd51510-5cd8-41f8-8271-285c542bb72f`).")}catch(e){}</script>
+</body></html>

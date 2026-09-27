@@ -7,7 +7,7 @@
  * fix loop. create_pull_request and generate_report read this persisted result.
  */
 
-import { assertSession, readAnalysis, writeChecks, setPhase } from "../lib/session.js";
+import { assertSession, readAnalysis, writeChecks, appendChecksHistory, setPhase } from "../lib/session.js";
 import { spawnChecks, formatChecks } from "./run-checks.js";
 
 interface Input {
@@ -25,6 +25,7 @@ export async function verifyMigration(input: Input): Promise<string> {
   try {
     result = await spawnChecks(sessionId, analysis, "all");
     writeChecks(sessionId, result);
+    appendChecksHistory(sessionId, result);
   } catch (err) {
     // Reset phase so the session is resumable after a transient failure.
     setPhase(sessionId, "implementing");

@@ -15,7 +15,7 @@ workflow step where it appears. This is the evidence brief for the hackathon sub
 | **Background subagents** | Per-file-cluster reads during implementation | Prevents context poisoning from large file reads |
 | **Document understanding** | User attaches migration guide PDF | Bob reads and understands PDF migration docs natively — no manual extraction |
 | **Custom skill** | `migration-doctor` auto-activates on upgrade intent | Single activation trigger drives the entire 7-step workflow |
-| **MCP server** | All backend logic (11 tools) | Exposes reusable repo-analysis tools; works as a standalone MCP for other agents |
+| **MCP server** | All backend logic (12 tools) | Exposes reusable repo-analysis tools; works as a standalone MCP for other agents |
 | **HTML artifact** | Before/after migration report | Shareable one-pager: measured results, labelled estimates, and what is not measured |
 | **Todo list** | Live progress during implementation | User can see each migration step tick off in real time |
 | **Mode switching** | Agent → Plan → Agent | Bob switches modes mid-workflow as the task transitions from analysis to planning to implementation |
@@ -29,7 +29,7 @@ workflow step where it appears. This is the evidence brief for the hackathon sub
 
 ```
 User (Agent mode):
-  "Upgrade react from 17 to 18.3.1 in <demo repo URL — see docs/target-repo.md (not ready yet)>
+  "Upgrade react from 17 to 18.3.1 in https://github.com/<you>/pantry-list   (see docs/target-repo.md)
    Here are the React 18 migration docs: [attached PDF]"
 ```
 
@@ -121,7 +121,7 @@ loop (max 3 iterations):
 
 **Location:** `backend/` (local stdio transport)
 
-**11 tools registered:**
+**12 tools registered:**
 
 | Tool | Phase |
 |---|---|
@@ -135,7 +135,8 @@ loop (max 3 iterations):
 | `apply_migration_patch` | 3 — code changes + commit |
 | `run_checks` | internal — raw check runner |
 | `create_pull_request` | 5 — GitHub PR |
-| `generate_report` | 5 — before/after report |
+| `generate_report` | any stage — migration report (HTML artifact / Markdown PR body) |
+| `get_session_status` | recovery — lists sessions, prints the next action |
 
 The MCP server is designed to be **reusable as a standalone tool** — any Bob user can
 connect it and call the analysis tools independently of the full migration workflow.

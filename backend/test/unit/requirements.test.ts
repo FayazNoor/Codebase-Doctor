@@ -47,9 +47,10 @@ describe("buildRequirements — canonical knowledge base", () => {
     expect(req.knowledgeBase).toBe("react-17-to-18.json");
     expect(req.docsSupplied).toBe(false);
     expect(req.breakingChanges.map((b) => b.id)).toEqual([
-      "react-bc-1", "react-bc-2", "react-bc-3", "react-bc-4", "react-bc-6", "react-bc-7",
+      "react-bc-1", "react-bc-2", "react-bc-3", "react-bc-4", "react-bc-6", "react-bc-7", "react-bc-12",
     ]);
-    // bc-5 (render callback) has no evidence in the fixture → not applicable
+    // bc-5 (render callback), bc-8..10 (unmount/subtree/server) and bc-11 (TS FC children)
+    // have no evidence in the fixture → not applicable
     expect(req.breakingChanges.every((b) => b.docsConfirmed === undefined)).toBe(true);
   });
 

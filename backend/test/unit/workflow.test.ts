@@ -100,7 +100,7 @@ describe("restart idempotency", () => {
     const before = readPlan(sessionId);
     expect(before.steps.map((s) => s.id)).toEqual([
       "step-1-dependencies", "step-2-react-bc-1", "step-3-react-bc-2", "step-4-react-bc-3",
-      "step-5-react-bc-4", "step-6-react-bc-6", "step-7-react-bc-7", "step-8-tests",
+      "step-5-react-bc-4", "step-6-react-bc-6", "step-7-react-bc-7", "step-8-react-bc-12", "step-9-tests",
     ]);
     await approveMigrationPlan({ sessionId, planId: before.planId, confirmation: "approved" });
 
@@ -147,7 +147,7 @@ describe("dependency step (config)", () => {
 
     const out = await applyMigrationPatch({ sessionId, stepId: "step-1-dependencies" });
     expect(out).toContain("Status: applied");
-    expect(fake.calls).toEqual([{ cmd: "npm", args: ["install"], cwd: wc }]);
+    expect(fake.calls).toEqual([{ cmd: "npm", args: ["install", "--no-audit", "--no-fund"], cwd: wc }]);
 
     const pkg = JSON.parse(read(wc, "package.json"));
     expect(pkg.dependencies).toEqual({ react: "^18.3.1", "react-dom": "^18.3.1" });
@@ -162,19 +162,38 @@ describe("dependency step (config)", () => {
     expect(step.outcome!.installedVersions).toEqual({ react: "18.3.1", "react-dom": "18.3.1" });
   });
 
-  it("restores package.json and stays pending when install fails", async () => {
+  it("restores package.json, records 'failed' with a diagnosis when install fails, and can be retried", async () => {
     const { wc, sessionId } = await approvedOnBranch();
     setCommandRunner(fakeInstaller({ fail: true }).runner);
-    await expect(applyMigrationPatch({ sessionId, stepId: "step-1-dependencies" })).rejects.toThrow(/restored[\s\S]*ERESOLVE/);
+    await expect(applyMigrationPatch({ sessionId, stepId: "step-1-dependencies" })).rejects.toThrow(
+      /FAILED[\s\S]*restored[\s\S]*Peer-dependency conflict: @testing-library\/react@12\.1\.5 \(needs react@"<18"\)[\s\S]*ERESOLVE/
+    );
     expect(read(wc, "package.json")).toContain('"react": "^17.0.2"');
-    expect(stepFor(sessionId, "config").status).toBe("pending");
+    expect(sh(wc, "git", ["status", "--porcelain", "--untracked-files=no"])).toBe("");
+    const failed = stepFor(sessionId, "config");
+    expect(failed.status).toBe("failed");
+    expect(failed.outcome!.errorOutput).toContain("ERESOLVE");
+    expect(failed.outcome!.attempts).toBe(1);
+
+    // Retry after the cause is fixed.
+    setCommandRunner(fakeInstaller().runner);
+    const out = await applyMigrationPatch({ sessionId, stepId: "step-1-dependencies" });
+    expect(out).toContain("Status: applied | Type: config | attempt 2");
+    expect(stepFor(sessionId, "config").status).toBe("applied");
   });
 
   it("rejects an install that leaves react and react-dom out of sync", async () => {
     const { sessionId } = await approvedOnBranch();
     setCommandRunner(fakeInstaller({ versions: { react: "18.3.1", "react-dom": "17.0.2" } }).runner);
     await expect(applyMigrationPatch({ sessionId, stepId: "step-1-dependencies" })).rejects.toThrow(/react-dom@17\.0\.2 does not satisfy/);
-    expect(stepFor(sessionId, "config").status).toBe("pending");
+    expect(stepFor(sessionId, "config").status).toBe("failed");
+  });
+
+  it("cannot be skipped", async () => {
+    const { sessionId } = await approvedOnBranch();
+    await expect(
+      applyMigrationPatch({ sessionId, stepId: "step-1-dependencies", skip: true, note: "not now please" })
+    ).rejects.toThrow(/cannot be skipped/);
   });
 
   it("cannot be marked complete manually", async () => {
@@ -262,7 +281,7 @@ describe("manual and test steps are never falsely 'applied'", () => {
 
   it("the test step claims no source modification", async () => {
     const { sessionId } = await approvedOnBranch();
-    const out = await applyMigrationPatch({ sessionId, stepId: "step-8-tests" });
+    const out = await applyMigrationPatch({ sessionId, stepId: stepFor(sessionId, "test").id });
     const step = stepFor(sessionId, "test");
     expect(step.status).toBe("manual_required");
     expect(step.outcome!.filesChanged).toEqual([]);
@@ -302,7 +321,7 @@ describe("generate_report truthfulness", () => {
 
     const data = buildReportData(sessionId);
     expect(data.measured.checks!.allPassed).toBe(true);
-    expect(data.measured.stepCounts).toMatchObject({ applied: 2, manual_required: 1, pending: 5 });
+    expect(data.measured.stepCounts).toMatchObject({ applied: 2, manual_required: 1, pending: 6, failed: 0, skipped: 0 });
     expect(data.measured.filesChanged!.sort()).toEqual(["package-lock.json", "package.json", "src/App.test.jsx", "src/index.jsx"]);
 
     const md = await generateReport({ sessionId, format: "markdown" });
@@ -316,12 +335,20 @@ describe("generate_report truthfulness", () => {
     expect(md).toContain("| Files changed on migration branch | 4 |");
 
     // HTML uses the same data
-    expect(html).toContain('<td class="muted">SKIPPED</td>');
-    expect(html).toContain("2/8");
-    expect(html).toContain("⚠️ Still requires manual action");
+    expect(html).toMatch(/<th scope="row">Lint<\/th><td><span class="pill pill-muted">SKIPPED<\/span>/);
+    expect(html).toContain("<th scope=\"row\">Steps applied automatically</th><td>2 / 9</td>");
+    expect(html).toContain("Manual action required");
     expect(html).toContain("Bobcoin consumption — not measured");
     expect(html).toContain("https://github.com/FayazNoor/Codebase-Doctor");
     expect(wc).toBeTruthy();
+
+    // Page chrome: the brand links home, the theme is a three-way switch, every contents link has a section.
+    expect(html).toContain('<a class="brand" href="https://github.com/FayazNoor/Codebase-Doctor" aria-label="Codebase Doctor home">');
+    expect(html).toContain('role="radiogroup" aria-label="Colour theme"');
+    expect(html.match(/role="radio" aria-checked="(true|false)" data-theme-mode="(system|light|dark)"/g)).toHaveLength(3);
+    const tocIds = [...html.matchAll(/<li><a href="#([a-z-]+)">/g)].map((m) => m[1]);
+    expect(tocIds).toHaveLength(10);
+    for (const id of tocIds) expect(html).toContain(`<section class="section" id="${id}"`);
   });
 
   it("flags verification as stale when commits were added afterwards", async () => {
