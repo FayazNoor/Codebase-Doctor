@@ -2,82 +2,49 @@
 
 ## Problem
 
-Upgrading a major dependency in an unfamiliar repository is one of the most painful, error-prone engineering tasks. A developer must:
+Major dependency upgrades get put off. A bot can open the version bump, but someone still has to find every place
+the package is used, work out which breaking changes apply to this codebase, change the code, fix the tests, run
+lint, tests and build, and explain it all in a pull request. When nobody knows what will break, the upgrade waits
+until it becomes urgent: a security fix or a compatibility deadline.
 
-- **Manually understand** where the dependency is used across the entire codebase
-- **Read migration documentation** and identify which breaking changes apply
-- **Estimate blast radius** — how many files will need to change, and how risky?
-- **Modify code** across potentially dozens of files
-- **Create or update regression tests** for changed behaviour
-- **Run lint / test / build**, diagnose failures, and iterate
-- **Write a clear PR description** explaining what changed and why
+## Solution
 
-For a large codebase, this easily consumes **1–3 days** of senior engineering time, and is frequently deferred until it becomes an urgent security or compatibility issue.
+**Codebase Doctor** is an IBM Bob 2.0 skill and MCP server that upgrades a dependency across a whole codebase, and
+proves it works before you merge. In Bob you say "Upgrade react to 18.3.1 in [your repo]". Then it:
 
----
+1. **Analyses** the whole package family (react, react-dom and their subpaths) with an AST scan: every import and
+   API call, with file and line, plus a peer-dependency preflight.
+2. **Keeps only the breaking changes that apply** to this repository (12 React 17 → 18 rules from the official
+   guide; your migration docs can confirm each one).
+3. **Ranks files by risk**, from concrete API evidence.
+4. **Writes an ordered plan, and waits.** Nothing changes until you type "approved". The server enforces it: the
+   branch, patch and pull-request tools refuse to run without an approval bound to the plan's content hash.
+5. **Applies one commit per step**: codemods where they are safe, judgement calls left to you and clearly marked.
+   A failed step is rolled back.
+6. **Verifies with the repository's own** lint, test and build scripts against the newly installed versions, and
+   keeps every run in the history.
+7. **Opens a pull request only after the checks pass** on the pushed commit, with the full report as its
+   description.
 
-## Solution: Codebase Doctor
+Session state is HMAC-sealed, so a hand-edited "passed" result shows up as untrusted instead of being believed.
 
-**Codebase Doctor** is an AI-assisted dependency upgrade tool powered by IBM Bob 2.0.
+## Proof: one recorded run (26 Sep 2026)
 
-A developer provides:
-1. A GitHub repository URL
-2. A dependency name (e.g. `react`)
-3. A target version (e.g. `18.3.1`)
-4. Optionally: migration documentation (PDF or URL)
+A React 17 demo app, driven over stdio exactly as Bob drives it, with a real npm install and real ESLint, Jest and
+esbuild runs:
 
-Codebase Doctor then autonomously:
+- 11 files use react; 9 need attention; 4 are high-risk
+- 8 breaking changes apply (3 automated, 5 manual or review); a 10-step plan, one commit per step
+- a peer conflict caught before install (`@testing-library/react` 12 → ^14.3.1)
+- verification #1 **failed** (a deprecated `unmountComponentAtNode` call, and a test that React 18 batches
+  differently); #2 passed after the fixes
+- the pull request opened in a local GitHub sandbox (a mock API and a bare repository), not on github.com
 
-| Step | What happens |
-|---|---|
-| 1 | Clones the repo and performs AST-level analysis of the dependency's **package family** (for React: `react`, `react-dom`, `react-dom/client`, `react-dom/test-utils`) — import sites **and** concrete API calls such as `ReactDOM.render(...)` |
-| 2 | Uses its built-in migration rules, validated and augmented by user-supplied documentation (e.g. a PDF) |
-| 3 | Identifies only the breaking changes with **evidence in this specific repo** |
-| 4 | Calculates blast radius — files ranked by migration risk score |
-| 5 | Produces a prioritised migration plan; **nothing is changed until the user approves** (enforced by the backend) |
-| 6 | Upgrades the package family together (e.g. `react` + `react-dom`), runs the real install and updates the lockfile |
-| 7 | Applies automated transforms where they are safe; tracks manual items (including test updates) until a human/Bob completes them |
-| 8 | Verifies installed versions and runs lint / test / build, diagnoses failures, and iterates (max 3 loops) |
-| 9 | Runs a final automated code review (Bob subagent) |
-| 10 | Opens a pull request — only after verification passes — with a report that separates automatic fixes, manual fixes, and open items |
+A script stood in for the human: it typed "approved" and made the manual edits. Every number above is real tool
+output, and the report labels anything that is estimated.
 
----
+**Try it:** https://codebase-doctor-bob2.vercel.app (the 2-minute demo, and a step-by-step replay of the run)
+**Code:** https://github.com/FayazNoor/Codebase-Doctor (241 automated tests)
 
-## Measurable Productivity Impact
-
-The migration report generated at the end of each session separates:
-
-- **Measured:** lint / test / build results, installed versions, files changed on the branch,
-  steps fixed automatically vs. manually vs. still open, elapsed session time
-- **Estimated (labelled as such):** manual effort = affected files × 30 min (a heuristic, not a
-  benchmark) and estimated time saved = that estimate − measured elapsed time
-- **Not measured:** Bobcoin consumption and accuracy — the server cannot observe them, so the
-  report says "not measured" instead of inventing numbers
-
-### Demo numbers — measured on the demo app (script-driven run, not a live Bob run)
-
-Recorded on 2026-09-26 by `backend/scripts/e2e-demo.mjs`: the real MCP server over stdio, driving
-`examples/react17-demo-app`. The install, lint, test and build were real; the PR went to a local sandbox, not
-github.com. Full transcript and report snapshots: `docs/evidence/e2e-run/`. A live Bob run has not been recorded
-with this version.
-
-| Metric | Value | Kind |
-|---|---|---|
-| Files using react / react-dom | 11 of 13 source files | measured |
-| Files with breaking-change evidence | 9 (4 high-risk) | measured |
-| Breaking changes applied to this repo | 8 (3 automated, 5 manual/review) | measured |
-| Peer conflicts caught before install | 1 (`@testing-library/react@12`, upgraded to ^14.3.1) | measured |
-| Verification | #1 failed (lint + 1 test), #2 passed after the recorded manual fixes | measured |
-| Files changed on the migration branch | 9 | measured |
-| Wall-clock for the whole workflow | 400 s in the recorded run, which shared the machine with other workloads (139–400 s across runs; dominated by `npm install`) | measured — script-driven, excludes human/Bob thinking time |
-| Manual effort | ~4.5 h (9 affected files × 30 min) | estimate only |
-| Time saved | estimate only (manual-effort estimate − measured elapsed time) | estimate only |
-| Bobcoin usage, accuracy | not measured | — |
-
----
-
-## Why IBM Bob 2.0?
-
-Bob 2.0's unique combination of **Agent mode**, **Plan mode**, **parallel subagents**, **document understanding**, and **custom skills** makes this workflow possible in a single coherent tool — no glue scripts, no context switching between tools.
-
-See [`BOB_USAGE.md`](../docs/BOB_USAGE.md) for the detailed breakdown of every Bob feature used.
+**Limits today:** pull requests were verified against a sandbox only; React 17 → 18 is the golden path (Express
+4 → 5 rules are review-only); single-package repositories.
